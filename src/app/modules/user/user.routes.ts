@@ -17,15 +17,32 @@ router.post(
     return userController.createAdmin(req, res, next);
   }
 );
+// Route for client creation with file upload
 router.post(
-  "/create-client",
+  "/create-client-with-file",
   fileUploader.upload.single("file"),
   (req: Request, res: Response, next: NextFunction) => {
-    req.body = userValidationSchema.createClientSchema.parse(
-      JSON.parse(req.body.data)
-    );
+    try {
+      req.body = userValidationSchema.createClientSchema.parse(
+        JSON.parse(req.body.data)
+      );
+      return userController.createClient(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-    return userController.createClient(req, res, next);
+// Route for client creation without file upload
+router.post(
+  "/create-client",
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = userValidationSchema.createClientSchema.parse(req.body);
+      return userController.createClient(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   }
 );
 
