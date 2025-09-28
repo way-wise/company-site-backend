@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  CLIENT
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model User {
+  id String @id @default(uuid())
+
+  email                  String     @unique
+  password               String
+  role                   UserRole
+  passwordChangeRequired Boolean    @default(true)
+  status                 UserStatus @default(ACTIVE)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  Admin                  Admin?
+  Client                 Client?
+  Employee               Employee?
+
+  @@map("users")
+}
+
+model Admin {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  profilePhoto  String?
+  contactNumber String
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [email], references: [email])
+  Blog          Blog[]
+
+  @@map("admins")
+}
+
+model Client {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  profilePhoto  String?
+  contactNumber String
+  address       String?
+  gender        Gender
+  isDeleted     Boolean  @default(false)
+  bio           String?
+  website       String?
+  twitter       String?
+  linkedIn      String?
+  facebook      String?
+  language      String?
+  education     String?
+  experience    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user    User      @relation(fields: [email], references: [email])
+  blog    Blog[]
+  Comment Comment[]
+}
+
+model Employee {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  profilePhoto  String?
+  contactNumber String
+  address       String?
+  gender        Gender
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [email], references: [email])
+
+  @@map("employees")
+}
+
+model Blog {
+  id         String     @id @default(uuid())
+  title      String
+  content    String
+  coverImage String?
+  adminId    String
+  admin      Admin      @relation(fields: [adminId], references: [id])
+  visibility Visibility @default(PUBLIC)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  comment    Comment[]
+  Client     Client?    @relation(fields: [clientId], references: [id])
+  clientId   String?
+
+  @@map("blogs")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
