@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import config from "../../../config/config";
 import catchAsync from "../../../shared/catchAsync";
 import { sendResponse } from "../../../shared/sendResponse";
 import { authServices } from "./auth.services";
@@ -7,11 +8,22 @@ import { authServices } from "./auth.services";
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await authServices.loginUser(req.body);
 
-  const { refreshToken } = result;
+  const { refreshToken, accessToken } = result;
 
+  // Set refresh token cookie
   res.cookie("refreshToken", refreshToken, {
-    secure: false,
+    secure: config.env === "production", // Use secure cookies in production
     httpOnly: true,
+    sameSite: "strict", // CSRF protection
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  // Set access token cookie
+  res.cookie("accessToken", accessToken, {
+    secure: config.env === "production", // Use secure cookies in production
+    httpOnly: true,
+    sameSite: "strict", // CSRF protection
+    maxAge: 15 * 60 * 1000, // 15 minutes
   });
 
   sendResponse(res, {
@@ -19,7 +31,6 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: "Logged in successfully!",
     data: {
-      accessToken: result.accessToken,
       passwordChangeRequired: result.passwordChangeRequired,
     },
   });
@@ -30,11 +41,19 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
   const result = await authServices.refreshToken(refreshToken);
 
+  // Set new access token cookie
+  res.cookie("accessToken", result.accessToken, {
+    secure: config.env === "production", // Use secure cookies in production
+    httpOnly: true,
+    sameSite: "strict", // CSRF protection
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Access token generated successfully!",
-    data: result,
+    data: null,
   });
 });
 
@@ -94,6 +113,28 @@ const getMe = catchAsync(
   }
 );
 
+const logout = catchAsync(async (req: Request, res: Response) => {
+  // Clear both access and refresh token cookies
+  res.clearCookie("accessToken", {
+    secure: config.env === "production",
+    httpOnly: true,
+    sameSite: "strict",
+  });
+
+  res.clearCookie("refreshToken", {
+    secure: config.env === "production",
+    httpOnly: true,
+    sameSite: "strict",
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Logged out successfully!",
+    data: null,
+  });
+});
+
 export const authController = {
   loginUser,
   refreshToken,
@@ -101,4 +142,5 @@ export const authController = {
   forgotPassword,
   resetPassword,
   getMe,
+  logout,
 };
