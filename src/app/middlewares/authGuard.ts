@@ -11,7 +11,6 @@ const authGuard = (...roles: string[]) => {
     _res: Response,
     next: NextFunction
   ) => {
-    console.log("authGuard", req.headers);
     // Try to get token from cookies first, then fallback to Authorization header
     const token = req.cookies?.accessToken || req.headers.authorization;
     if (!token) {

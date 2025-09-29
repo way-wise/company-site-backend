@@ -99,7 +99,6 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 const getMe = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
-    console.log("req.user", req);
     const user = req.user;
 
     const result = await authServices.getMe(user);
