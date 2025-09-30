@@ -14,7 +14,7 @@ router.get("/all-users", (req: Request, res: Response, next: NextFunction) => {
 });
 
 router.post(
-  "/create-admin",
+  "/create-admin-with-file",
   // authGuard(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   fileUploader.upload.single("file"),
   (req: Request, res: Response, next: NextFunction) => {
@@ -25,6 +25,18 @@ router.post(
     return userController.createAdmin(req, res, next);
   }
 );
+router.post(
+  "/create-admin",
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = userValidationSchema.createAdminSchema.parse(req.body);
+      return userController.createAdmin(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Route for client creation with file upload
 router.post(
   "/create-client-with-file",

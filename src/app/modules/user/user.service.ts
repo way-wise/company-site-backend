@@ -6,9 +6,27 @@ import prisma from "../../../shared/prismaClient";
 const meiliClientIndex = meiliClient.index("clients");
 
 const getAllUsers = async (req: any): Promise<User[]> => {
-  console.log("getAllUsers");
-  const result = await prisma.user.findMany();
-  return result;
+  const result = await prisma.user.findMany({
+    where: {
+      OR: [
+        { Admin: { isNot: null } },
+        { Client: { isNot: null } },
+        { Employee: { isNot: null } },
+      ],
+    },
+    include: {
+      Admin: true,
+      Client: true,
+      Employee: true,
+    },
+  });
+
+  return result.map((user) => ({
+    ...user,
+    Admin: user.Admin ?? undefined,
+    Client: user.Client ?? undefined,
+    Employee: user.Employee ?? undefined,
+  }));
 };
 
 const createAdmin = async (req: any): Promise<Admin> => {
