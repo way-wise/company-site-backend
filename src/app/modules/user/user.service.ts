@@ -109,14 +109,18 @@ const createAdmin = async (req: any): Promise<Admin> => {
   };
 
   const result = await prisma.$transaction(async (txClient) => {
-    await txClient.user.create({
+    const newUser = await txClient.user.create({
       data: userData,
     });
+    const { name, email, ...adminData } = req.body.admin;
     const newAdmin = await txClient.admin.create({
-      data: req.body.admin,
+      data: {
+        ...adminData,
+        userId: newUser.id,
+      },
     });
 
-    const { id, name, email, profilePhoto } = newAdmin;
+    const { id, profilePhoto } = newAdmin;
 
     return newAdmin;
   });
@@ -151,15 +155,25 @@ const createClient = async (req: any): Promise<Client> => {
       });
 
       // Create client profile
+      const { name, email, ...clientData } = req.body.client;
       const newClient = await txClient.client.create({
-        data: req.body.client,
+        data: {
+          ...clientData,
+          userId: newUser.id,
+        },
       });
 
       // Add to search index
       try {
-        const { id, name, email, profilePhoto, contactNumber } = newClient;
+        const { id, profilePhoto, contactNumber } = newClient;
         await meiliClientIndex.addDocuments([
-          { id, name, email, profilePhoto, contactNumber },
+          {
+            id,
+            name: newUser.name,
+            email: newUser.email,
+            profilePhoto,
+            contactNumber,
+          },
         ]);
       } catch (searchError) {
         console.error("Failed to add client to search index:", searchError);

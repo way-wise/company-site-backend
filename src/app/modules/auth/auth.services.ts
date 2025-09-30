@@ -204,9 +204,9 @@ const getMe = async (user: VerifiedUser) => {
       status: UserStatus.ACTIVE,
     },
     include: {
-      Admin: true,
-      Client: true,
-      Employee: true,
+      admin: true,
+      client: true,
+      employee: true,
     },
   });
 

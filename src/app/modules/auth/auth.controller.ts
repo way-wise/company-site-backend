@@ -23,7 +23,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     secure: config.env === "production", // Use secure cookies in production
     httpOnly: true,
     sameSite: "strict", // CSRF protection
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    maxAge: 2 * 24 * 60 * 60 * 1000,
   });
 
   sendResponse(res, {
@@ -46,7 +46,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     secure: config.env === "production", // Use secure cookies in production
     httpOnly: true,
     sameSite: "strict", // CSRF protection
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    maxAge: 2 * 24 * 60 * 60 * 1000,
   });
 
   sendResponse(res, {

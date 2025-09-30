@@ -30,6 +30,29 @@ enum Gender {
   FEMALE
 }
 
+enum ProjectStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  ONGOING
+  COMPLETED
+  REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum EmployeeMilestoneStatus {
+  ASSIGNED
+  ONGOING
+  COMPLETED
+  RELEASED
+}
+
 model User {
   id                     String     @id @default(uuid())
   name                   String
@@ -40,32 +63,34 @@ model User {
   status                 UserStatus @default(ACTIVE)
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
-  admin                  Admin?
-  client                 Client?
-  employee               Employee?
 
+  admin    Admin?
+  client   Client?
+  employee Employee?
+
+  @@index([role])
+  @@index([status])
   @@map("users")
 }
 
 model Admin {
   id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
+  userId        String   @unique
   profilePhoto  String?
   contactNumber String
   isDeleted     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [email], references: [email])
-  blog          Blog[]
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blogs Blog[]
 
   @@map("admins")
 }
 
 model Client {
   id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
+  userId        String   @unique
   profilePhoto  String?
   contactNumber String
   address       String?
@@ -82,15 +107,16 @@ model Client {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user    User      @relation(fields: [email], references: [email])
-  blog    Blog[]
-  comment Comment[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  projects Project[]
+
+  @@map("clients")
 }
 
 model Employee {
   id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
+  userId        String   @unique
   profilePhoto  String?
   contactNumber String
   address       String?
@@ -98,9 +124,59 @@ model Employee {
   isDeleted     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [email], references: [email])
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeMilestones EmployeeMilestone[]
 
   @@map("employees")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  clientId    String
+
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  milestones Milestone[]
+
+  @@index([status])
+  @@index([clientId])
+  @@map("projects")
+}
+
+model Milestone {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  status      MilestoneStatus @default(PENDING)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  projectId   String
+
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employeeMilestones EmployeeMilestone[]
+
+  @@index([status])
+  @@map("milestones")
+}
+
+model EmployeeMilestone {
+  id          String                  @id @default(uuid())
+  employeeId  String
+  milestoneId String
+  status      EmployeeMilestoneStatus @default(ASSIGNED)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, milestoneId])
+  @@map("employee_milestones")
 }
 
 model Blog {
@@ -108,15 +184,15 @@ model Blog {
   title      String
   content    String
   coverImage String?
-  adminId    String
-  admin      Admin      @relation(fields: [adminId], references: [id])
   visibility Visibility @default(PUBLIC)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  comment    Comment[]
-  client     Client?    @relation(fields: [clientId], references: [id])
-  clientId   String?
+  adminId    String
 
+  admin    Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  comments Comment[]
+
+  @@index([visibility])
   @@map("blogs")
 }
 
@@ -124,11 +200,12 @@ model Comment {
   id        String   @id @default(uuid())
   content   String
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
   blogId    String
-  blog      Blog     @relation(fields: [blogId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
