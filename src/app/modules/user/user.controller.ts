@@ -5,6 +5,15 @@ import catchAsync from "../../../shared/catchAsync";
 import { sendResponse } from "../../../shared/sendResponse";
 import { userService } from "./user.service";
 
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getAllUsers(req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users fetched successfully!",
+    data: result,
+  });
+});
 const createAdmin = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.createAdmin(req);
   sendResponse(res, {
@@ -28,4 +37,5 @@ const createClient = catchAsync(async (req: Request, res: Response) => {
 export const userController = {
   createAdmin,
   createClient,
+  getAllUsers,
 };

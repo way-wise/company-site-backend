@@ -5,6 +5,14 @@ import { userValidationSchema } from "./user.validationSchema";
 
 const router = express.Router();
 
+router.get("/all-users", (req: Request, res: Response, next: NextFunction) => {
+  try {
+    return userController.getAllUsers(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post(
   "/create-admin",
   // authGuard(UserRole.SUPER_ADMIN, UserRole.ADMIN),

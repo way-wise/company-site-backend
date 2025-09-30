@@ -1,9 +1,15 @@
-import { Admin, Client, UserRole } from "@prisma/client";
+import { Admin, Client, User, UserRole } from "@prisma/client";
 import bcrypt from "bcrypt";
 import uploadImageS3 from "../../../helpers/s3Uploader";
 import meiliClient from "../../../shared/meilisearch";
 import prisma from "../../../shared/prismaClient";
 const meiliClientIndex = meiliClient.index("clients");
+
+const getAllUsers = async (req: any): Promise<User[]> => {
+  console.log("getAllUsers");
+  const result = await prisma.user.findMany();
+  return result;
+};
 
 const createAdmin = async (req: any): Promise<Admin> => {
   if (req.file) {
@@ -89,6 +95,7 @@ const createClient = async (req: any): Promise<Client> => {
 };
 
 export const userService = {
+  getAllUsers,
   createAdmin,
   createClient,
 };
