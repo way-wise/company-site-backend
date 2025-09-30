@@ -73,6 +73,24 @@ const getAllUsers = async (
   };
 };
 
+const getSingleUserFromDB = async (id: string) => {
+  return await prisma.user.findUniqueOrThrow({
+    where: {
+      id,
+      OR: [
+        { Admin: { isDeleted: false } },
+        { Client: { isDeleted: false } },
+        { Employee: { isDeleted: false } },
+      ],
+    },
+    include: {
+      Admin: true,
+      Client: true,
+      Employee: true,
+    },
+  });
+};
+
 const createAdmin = async (req: any): Promise<Admin> => {
   if (req.file) {
     const uploadedFileUrl = await uploadImageS3(req.file);
@@ -162,4 +180,5 @@ export const userService = {
   getAllUsers,
   createAdmin,
   createClient,
+  getSingleUserFromDB,
 };

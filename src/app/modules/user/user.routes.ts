@@ -12,6 +12,7 @@ router.get("/all-users", (req: Request, res: Response, next: NextFunction) => {
     next(error);
   }
 });
+router.get("/:id", userController.getSingleUser);
 
 router.post(
   "/create-admin-with-file",

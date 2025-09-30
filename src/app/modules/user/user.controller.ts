@@ -28,7 +28,17 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
     data: result.result,
   });
 });
+const getSingleUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
 
+  const result = await userService.getSingleUserFromDB(id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User data fetched successfully!",
+    data: result,
+  });
+});
 const createAdmin = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.createAdmin(req);
   sendResponse(res, {
@@ -53,4 +63,5 @@ export const userController = {
   createAdmin,
   createClient,
   getAllUsers,
+  getSingleUser,
 };
