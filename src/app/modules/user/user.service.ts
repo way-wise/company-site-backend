@@ -1,32 +1,76 @@
-import { Admin, Client, User, UserRole } from "@prisma/client";
+import { Admin, Client, Prisma, UserRole } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import uploadImageS3 from "../../../helpers/s3Uploader";
 import meiliClient from "../../../shared/meilisearch";
 import prisma from "../../../shared/prismaClient";
+import {
+  IPaginationParams,
+  ISortingParams,
+} from "../../interfaces/paginationSorting";
+import { searchableFields } from "./user.constant";
+import { IUserFilterParams } from "./user.interface";
 const meiliClientIndex = meiliClient.index("clients");
 
-const getAllUsers = async (req: any): Promise<User[]> => {
+const getAllUsers = async (
+  queryParams: IUserFilterParams,
+  paginationAndSortingQueryParams: IPaginationParams & ISortingParams
+) => {
+  const { q, ...otherQueryParams } = queryParams;
+
+  const { limit, skip, page, sortBy, sortOrder } =
+    generatePaginateAndSortOptions({
+      ...paginationAndSortingQueryParams,
+    });
+
+  const conditions: Prisma.UserWhereInput[] = [];
+
+  // filtering out the soft deleted users
+  conditions.push({
+    OR: [
+      { Admin: { isDeleted: false } },
+      { Client: { isDeleted: false } },
+      { Employee: { isDeleted: false } },
+    ],
+  });
+
+  //@ searching
+  if (q) {
+    const searchConditions = searchableFields.map((field) => ({
+      [field]: { contains: q, mode: "insensitive" },
+    }));
+    conditions.push({ OR: searchConditions });
+  }
+
+  //@ filtering with exact value
+  if (Object.keys(otherQueryParams).length > 0) {
+    const filterData = Object.keys(otherQueryParams).map((key) => ({
+      [key]: (otherQueryParams as any)[key],
+    }));
+    conditions.push(...filterData);
+  }
+
   const result = await prisma.user.findMany({
-    where: {
-      OR: [
-        { Admin: { isNot: null } },
-        { Client: { isNot: null } },
-        { Employee: { isNot: null } },
-      ],
-    },
-    include: {
-      Admin: true,
-      Client: true,
-      Employee: true,
+    where: { AND: conditions },
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
     },
   });
 
-  return result.map((user) => ({
-    ...user,
-    Admin: user.Admin ?? undefined,
-    Client: user.Client ?? undefined,
-    Employee: user.Employee ?? undefined,
-  }));
+  const total = await prisma.user.count({
+    where: { AND: conditions },
+  });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    result,
+  };
 };
 
 const createAdmin = async (req: any): Promise<Admin> => {
@@ -40,6 +84,7 @@ const createAdmin = async (req: any): Promise<Admin> => {
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
   const userData = {
+    name: req.body.admin.name,
     email: req.body.admin.email,
     password: hashedPassword,
     role: UserRole.ADMIN,
@@ -75,6 +120,7 @@ const createClient = async (req: any): Promise<Client> => {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const userData = {
+      name: req.body.client.name,
       email: req.body.client.email,
       password: hashedPassword,
       role: UserRole.CLIENT,
