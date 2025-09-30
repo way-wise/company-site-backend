@@ -28,9 +28,9 @@ const getAllUsers = async (
   // filtering out the soft deleted users
   conditions.push({
     OR: [
-      { Admin: { isDeleted: false } },
-      { Client: { isDeleted: false } },
-      { Employee: { isDeleted: false } },
+      { admin: { isDeleted: false } },
+      { client: { isDeleted: false } },
+      { employee: { isDeleted: false } },
     ],
   });
 
@@ -78,15 +78,15 @@ const getSingleUserFromDB = async (id: string) => {
     where: {
       id,
       OR: [
-        { Admin: { isDeleted: false } },
-        { Client: { isDeleted: false } },
-        { Employee: { isDeleted: false } },
+        { admin: { isDeleted: false } },
+        { client: { isDeleted: false } },
+        { employee: { isDeleted: false } },
       ],
     },
     include: {
-      Admin: true,
-      Client: true,
-      Employee: true,
+      admin: true,
+      client: true,
+      employee: true,
     },
   });
 };
