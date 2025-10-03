@@ -77,7 +77,7 @@ model Admin {
   id            String   @id @default(uuid())
   userId        String   @unique
   profilePhoto  String?
-  contactNumber String
+  contactNumber String?
   isDeleted     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -92,7 +92,7 @@ model Client {
   id            String   @id @default(uuid())
   userId        String   @unique
   profilePhoto  String?
-  contactNumber String
+  contactNumber String?
   address       String?
   gender        Gender
   isDeleted     Boolean  @default(false)
@@ -118,7 +118,7 @@ model Employee {
   id            String   @id @default(uuid())
   userId        String   @unique
   profilePhoto  String?
-  contactNumber String
+  contactNumber String?
   address       String?
   gender        Gender
   isDeleted     Boolean  @default(false)
