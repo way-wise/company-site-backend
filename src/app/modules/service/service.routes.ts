@@ -10,7 +10,7 @@ const router = express.Router();
 router.post(
   "/",
   // authGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  validateRequest(serviceValidationSchemas.create),
+  // validateRequest(serviceValidationSchemas.create),
   ServiceController.createService
 );
 
