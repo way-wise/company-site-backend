@@ -8,7 +8,7 @@ import { validParams } from "./service.constants";
 import { ServiceService } from "./service.service";
 
 const createService = catchAsync(async (req: Request, res: Response) => {
-  console.log("req.body", req.body);
+  console.log("req.body", req);
   const result = await ServiceService.createServiceIntoDB(req.body);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
