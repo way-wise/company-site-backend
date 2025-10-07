@@ -1,0 +1,232 @@
+import { Request, Response } from "express";
+import httpStatus from "http-status";
+import { paginationAndSortingParams } from "../../../shared/appConstants";
+import catchAsync from "../../../shared/catchAsync";
+import { filterValidQueryParams } from "../../../shared/filterValidQueryParams";
+import prisma from "../../../shared/prismaClient";
+import { sendResponse } from "../../../shared/sendResponse";
+import { validParams } from "./leave.constants";
+import { LeaveService } from "./leave.service";
+
+const applyForLeave = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const user = req.user;
+
+    // Get employee ID from user
+    const employee = await prisma.employee.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!employee) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: "Employee profile not found",
+        data: null,
+      });
+    }
+
+    const result = await LeaveService.createLeaveApplication({
+      employeeId: employee.id,
+      startDate: req.body.startDate,
+      endDate: req.body.endDate,
+      reason: req.body.reason,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: "Leave application submitted successfully!",
+      data: result,
+    });
+  }
+);
+
+const getMyLeaves = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const user = req.user;
+
+    // Get employee ID from user
+    const employee = await prisma.employee.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!employee) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: "Employee profile not found",
+        data: null,
+      });
+    }
+
+    const validQueryParams = filterValidQueryParams(req.query, validParams);
+    const paginationAndSortingQueryParams = filterValidQueryParams(
+      req.query,
+      paginationAndSortingParams
+    );
+
+    const result = await LeaveService.getMyLeaveApplications(
+      employee.id,
+      validQueryParams,
+      paginationAndSortingQueryParams
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "My leave applications fetched successfully!",
+      meta: result.meta,
+      data: result.result,
+    });
+  }
+);
+
+const getAllLeaves = catchAsync(async (req: Request, res: Response) => {
+  const validQueryParams = filterValidQueryParams(req.query, validParams);
+  const paginationAndSortingQueryParams = filterValidQueryParams(
+    req.query,
+    paginationAndSortingParams
+  );
+
+  const result = await LeaveService.getAllLeaveApplications(
+    validQueryParams,
+    paginationAndSortingQueryParams
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All leave applications fetched successfully!",
+    meta: result.meta,
+    data: result.result,
+  });
+});
+
+const getSingleLeave = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const result = await LeaveService.getSingleLeaveApplication(id);
+
+  if (!result) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: "Leave application not found",
+      data: null,
+    });
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Leave application fetched successfully!",
+    data: result,
+  });
+});
+
+const approveLeave = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    // Get admin ID from user
+    const admin = await prisma.admin.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!admin) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: "Admin profile not found",
+        data: null,
+      });
+    }
+
+    const result = await LeaveService.updateLeaveStatus(id, {
+      status: "APPROVED",
+      approvedBy: admin.id,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Leave application approved successfully!",
+      data: result,
+    });
+  }
+);
+
+const rejectLeave = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    // Get admin ID from user
+    const admin = await prisma.admin.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!admin) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: "Admin profile not found",
+        data: null,
+      });
+    }
+
+    const result = await LeaveService.updateLeaveStatus(id, {
+      status: "REJECTED",
+      approvedBy: admin.id,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Leave application rejected successfully!",
+      data: result,
+    });
+  }
+);
+
+const deleteLeave = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    // Get employee ID from user
+    const employee = await prisma.employee.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!employee) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: "Employee profile not found",
+        data: null,
+      });
+    }
+
+    const result = await LeaveService.deleteLeaveApplication(id, employee.id);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Leave application deleted successfully!",
+      data: result,
+    });
+  }
+);
+
+export const LeaveController = {
+  applyForLeave,
+  getMyLeaves,
+  getAllLeaves,
+  getSingleLeave,
+  approveLeave,
+  rejectLeave,
+  deleteLeave,
+};
