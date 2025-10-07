@@ -1,4 +1,4 @@
-import { Admin, Client, Prisma, UserRole } from "@prisma/client";
+import { Admin, Client, Employee, Prisma, UserRole } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import uploadImageS3 from "../../../helpers/s3Uploader";
@@ -28,9 +28,16 @@ const getAllUsers = async (
   // filtering out the soft deleted users
   conditions.push({
     OR: [
-      { admin: { isDeleted: false } },
-      { client: { isDeleted: false } },
-      { employee: { isDeleted: false } },
+      {
+        AND: [{ role: "ADMIN" }, { admin: { isDeleted: false } }],
+      },
+      {
+        AND: [{ role: "CLIENT" }, { client: { isDeleted: false } }],
+      },
+      {
+        AND: [{ role: "EMPLOYEE" }, { employee: { isDeleted: false } }],
+      },
+      { role: "SUPER_ADMIN" }, // SUPER_ADMIN doesn't have soft delete
     ],
   });
 
@@ -57,11 +64,37 @@ const getAllUsers = async (
     orderBy: {
       [sortBy]: sortOrder,
     },
+    include: {
+      admin: true,
+      client: true,
+      employee: true,
+    },
   });
 
   const total = await prisma.user.count({
     where: { AND: conditions },
   });
+
+  // Transform the data to match frontend expectations
+  const transformedResult = result.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.status === "ACTIVE",
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    contactNumber:
+      user.admin?.contactNumber ||
+      user.client?.contactNumber ||
+      user.employee?.contactNumber ||
+      "",
+    gender: user.client?.gender || user.employee?.gender || "MALE",
+    image:
+      user.admin?.profilePhoto ||
+      user.client?.profilePhoto ||
+      user.employee?.profilePhoto,
+  }));
 
   return {
     meta: {
@@ -69,7 +102,7 @@ const getAllUsers = async (
       limit,
       total,
     },
-    result,
+    result: transformedResult,
   };
 };
 
@@ -190,9 +223,196 @@ const createClient = async (req: any): Promise<Client> => {
   }
 };
 
+const createEmployee = async (req: any): Promise<Employee> => {
+  try {
+    // Handle file upload if present
+    if (req.file) {
+      const uploadedFileUrl = await uploadImageS3(req.file);
+      if (!uploadedFileUrl) {
+        throw new Error("Failed to upload profile photo");
+      }
+      req.body.employee.profilePhoto = uploadedFileUrl;
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    const userData = {
+      name: req.body.employee.name,
+      email: req.body.employee.email,
+      password: hashedPassword,
+      role: UserRole.EMPLOYEE,
+    };
+
+    const result = await prisma.$transaction(async (txClient) => {
+      // Create user first
+      const newUser = await txClient.user.create({
+        data: userData,
+      });
+
+      // Create employee profile
+      const { name, email, ...employeeData } = req.body.employee;
+      const newEmployee = await txClient.employee.create({
+        data: {
+          ...employeeData,
+          userId: newUser.id,
+        },
+      });
+
+      return newEmployee;
+    });
+
+    return result;
+  } catch (error) {
+    console.error("Error creating employee:", error);
+    throw error;
+  }
+};
+
+// Update user
+const updateUser = async (userId: string, userData: any) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: userData,
+    include: {
+      admin: true,
+      client: true,
+      employee: true,
+    },
+  });
+
+  const result = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    contactNumber:
+      user.admin?.contactNumber ||
+      user.client?.contactNumber ||
+      user.employee?.contactNumber ||
+      "",
+    gender: user.client?.gender || user.employee?.gender || "MALE",
+    role: user.role,
+    isActive: user.status === "ACTIVE",
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    image:
+      user.admin?.profilePhoto ||
+      user.client?.profilePhoto ||
+      user.employee?.profilePhoto,
+  };
+
+  return result;
+};
+
+// Ban user (soft delete)
+const banUser = async (userId: string, banReason: string) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { status: "BLOCKED" },
+    include: {
+      admin: true,
+      client: true,
+      employee: true,
+    },
+  });
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    contactNumber:
+      user.admin?.contactNumber ||
+      user.client?.contactNumber ||
+      user.employee?.contactNumber ||
+      "",
+    gender: user.client?.gender || user.employee?.gender || "MALE",
+    role: user.role,
+    isActive: user.status === "ACTIVE",
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    image:
+      user.admin?.profilePhoto ||
+      user.client?.profilePhoto ||
+      user.employee?.profilePhoto,
+  };
+};
+
+// Unban user (activate)
+const unbanUser = async (userId: string) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { status: "ACTIVE" },
+    include: {
+      admin: true,
+      client: true,
+      employee: true,
+    },
+  });
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    contactNumber:
+      user.admin?.contactNumber ||
+      user.client?.contactNumber ||
+      user.employee?.contactNumber ||
+      "",
+    gender: user.client?.gender || user.employee?.gender || "MALE",
+    role: user.role,
+    isActive: user.status === "ACTIVE",
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    image:
+      user.admin?.profilePhoto ||
+      user.client?.profilePhoto ||
+      user.employee?.profilePhoto,
+  };
+};
+
+// Delete user (soft delete)
+const deleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      admin: true,
+      client: true,
+      employee: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Soft delete based on role
+  if (user.role === "ADMIN" && user.admin) {
+    await prisma.admin.update({
+      where: { id: user.admin.id },
+      data: { isDeleted: true },
+    });
+  } else if (user.role === "CLIENT" && user.client) {
+    await prisma.client.update({
+      where: { id: user.client.id },
+      data: { isDeleted: true },
+    });
+  } else if (user.role === "EMPLOYEE" && user.employee) {
+    await prisma.employee.update({
+      where: { id: user.employee.id },
+      data: { isDeleted: true },
+    });
+  }
+
+  return { message: "User deleted successfully" };
+};
+
 export const userService = {
   getAllUsers,
   createAdmin,
   createClient,
+  createEmployee,
   getSingleUserFromDB,
+  updateUser,
+  banUser,
+  unbanUser,
+  deleteUser,
 };

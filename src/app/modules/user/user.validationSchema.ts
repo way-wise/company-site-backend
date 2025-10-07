@@ -34,7 +34,23 @@ const createClientSchema = z.object({
   }),
 });
 
+const createEmployeeSchema = z.object({
+  password: z.string({ message: "Password is required" }),
+  employee: z.object({
+    name: z.string({ message: "Name is required" }),
+    email: z.string().email({ message: "Valid email is required" }),
+    gender: z.enum(["MALE", "FEMALE"], {
+      message: "Gender must be MALE or FEMALE",
+    }),
+    contactNumber: z
+      .string({ message: "Contact number is required" })
+      .optional(),
+    address: z.string().optional(),
+  }),
+});
+
 export const userValidationSchema = {
   createAdminSchema,
   createClientSchema,
+  createEmployeeSchema,
 };
