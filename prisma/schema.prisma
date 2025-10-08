@@ -7,13 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  SUPER_ADMIN
-  ADMIN
-  CLIENT
-  EMPLOYEE
-}
-
 enum UserStatus {
   ACTIVE
   BLOCKED
@@ -59,12 +52,63 @@ enum LeaveStatus {
   REJECTED
 }
 
+model Permission {
+  id          String   @id @default(ulid())
+  name        String   @unique
+  group       String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id              String               @id @default(ulid())
+  name            String               @unique
+  description     String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRoleAssignment[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String   @id @default(ulid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRoleAssignment {
+  id         String   @id @default(ulid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
 model User {
-  id                       String     @id @default(uuid())
-  name                     String
-  email                    String     @unique
-  password                 String
-  role                     UserRole
+  id       String @id @default(ulid())
+  name     String
+  email    String @unique
+  password String
+
   isPasswordChangeRequired Boolean    @default(true)
   status                   UserStatus @default(ACTIVE)
   createdAt                DateTime   @default(now())
@@ -74,13 +118,14 @@ model User {
   client   Client?
   employee Employee?
 
-  @@index([role])
+  roles UserRoleAssignment[]
+
   @@index([status])
   @@map("users")
 }
 
 model Admin {
-  id            String   @id @default(uuid())
+  id            String   @id @default(ulid())
   userId        String   @unique
   profilePhoto  String?
   contactNumber String?
@@ -96,7 +141,7 @@ model Admin {
 }
 
 model Client {
-  id            String   @id @default(uuid())
+  id            String   @id @default(ulid())
   userId        String   @unique
   profilePhoto  String?
   contactNumber String?
@@ -122,7 +167,7 @@ model Client {
 }
 
 model Employee {
-  id            String   @id @default(uuid())
+  id            String   @id @default(ulid())
   userId        String   @unique
   profilePhoto  String?
   contactNumber String?
@@ -140,7 +185,7 @@ model Employee {
 }
 
 model Project {
-  id          String        @id @default(uuid())
+  id          String        @id @default(ulid())
   name        String
   description String?
   status      ProjectStatus @default(PENDING)
@@ -157,7 +202,7 @@ model Project {
 }
 
 model Milestone {
-  id          String          @id @default(uuid())
+  id          String          @id @default(ulid())
   name        String
   description String?
   status      MilestoneStatus @default(PENDING)
@@ -174,7 +219,7 @@ model Milestone {
 }
 
 model EmployeeMilestone {
-  id          String                  @id @default(uuid())
+  id          String                  @id @default(ulid())
   employeeId  String
   milestoneId String
   status      EmployeeMilestoneStatus @default(ASSIGNED)
@@ -189,7 +234,7 @@ model EmployeeMilestone {
 }
 
 model Service {
-  id                String             @id @default(uuid())
+  id                String             @id @default(ulid())
   name              String
   image             String?
   description       String?
@@ -201,7 +246,7 @@ model Service {
 }
 
 model ServiceMilestone {
-  id          String    @id @default(uuid())
+  id          String    @id @default(ulid())
   serviceId   String
   milestoneId String
   service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -211,7 +256,7 @@ model ServiceMilestone {
 }
 
 model Blog {
-  id         String     @id @default(uuid())
+  id         String     @id @default(ulid())
   title      String
   content    String
   coverImage String?
@@ -228,7 +273,7 @@ model Blog {
 }
 
 model Comment {
-  id        String   @id @default(uuid())
+  id        String   @id @default(ulid())
   content   String
   clientId  String
   blogId    String
@@ -242,7 +287,7 @@ model Comment {
 }
 
 model LeaveApplication {
-  id         String      @id @default(uuid())
+  id         String      @id @default(ulid())
   employeeId String
   startDate  DateTime
   endDate    DateTime
