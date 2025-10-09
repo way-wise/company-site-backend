@@ -1,47 +1,119 @@
 import express, { NextFunction, Request, Response } from "express";
+import authGuard from "../../middlewares/authGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { roleController } from "./role.controller";
 import { roleValidationSchema } from "./role.validationSchema";
 
 const router = express.Router();
 
+// ⚠️ IMPORTANT: Specific routes MUST come before parameterized routes like /:id
+// Otherwise Express will match them to /:id with the path segment as the id
+
+// Get user roles (MUST come before /:id)
+router.get(
+  "/user/:userId/roles",
+  authGuard(),
+  permissionGuard("read_role"),
+  roleController.getUserRoles
+);
+
+// Get user permissions (MUST come before /:id)
+router.get(
+  "/user/:userId/permissions",
+  authGuard(),
+  permissionGuard("read_permission"),
+  roleController.getUserPermissions
+);
+
+// Assign role to user (MUST come before /:id)
+router.post(
+  "/assign-user",
+  authGuard(),
+  permissionGuard("assign_role"),
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = roleValidationSchema.assignRoleToUserSchema.parse(req.body);
+      return roleController.assignRoleToUser(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Remove role from user (MUST come before /:id)
+router.post(
+  "/remove-user",
+  authGuard(),
+  permissionGuard("assign_role"),
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = roleValidationSchema.removeRoleFromUserSchema.parse(req.body);
+      return roleController.removeRoleFromUser(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Get all roles
-router.get("/", roleController.getAllRoles);
+router.get(
+  "/",
+  authGuard(),
+  permissionGuard("read_role"),
+  roleController.getAllRoles
+);
 
 // Get single role
-router.get("/:id", roleController.getSingleRole);
-
-// Get user roles
-router.get("/user/:userId/roles", roleController.getUserRoles);
-
-// Get user permissions (all permissions from all assigned roles)
-router.get("/user/:userId/permissions", roleController.getUserPermissions);
+router.get(
+  "/:id",
+  authGuard(),
+  permissionGuard("read_role"),
+  roleController.getSingleRole
+);
 
 // Create role
-router.post("/", (req: Request, res: Response, next: NextFunction) => {
-  try {
-    req.body = roleValidationSchema.createRoleSchema.parse(req.body);
-    return roleController.createRole(req, res, next);
-  } catch (error) {
-    next(error);
+router.post(
+  "/",
+  authGuard(),
+  permissionGuard("create_role"),
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = roleValidationSchema.createRoleSchema.parse(req.body);
+      return roleController.createRole(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // Update role
-router.put("/:id", (req: Request, res: Response, next: NextFunction) => {
-  try {
-    req.body = roleValidationSchema.updateRoleSchema.parse(req.body);
-    return roleController.updateRole(req, res, next);
-  } catch (error) {
-    next(error);
+router.put(
+  "/:id",
+  authGuard(),
+  permissionGuard("update_role"),
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = roleValidationSchema.updateRoleSchema.parse(req.body);
+      return roleController.updateRole(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // Delete role
-router.delete("/:id", roleController.deleteRole);
+router.delete(
+  "/:id",
+  authGuard(),
+  permissionGuard("delete_role"),
+  roleController.deleteRole
+);
 
 // Assign permissions to role
 router.post(
   "/:id/permissions",
+  authGuard(),
+  permissionGuard("assign_permission"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = roleValidationSchema.assignPermissionsSchema.parse(req.body);
@@ -55,33 +127,9 @@ router.post(
 // Remove permission from role
 router.delete(
   "/:roleId/permissions/:permissionId",
+  authGuard(),
+  permissionGuard("assign_permission"),
   roleController.removePermissionFromRole
-);
-
-// Assign role to user
-router.post(
-  "/assign-user",
-  (req: Request, res: Response, next: NextFunction) => {
-    try {
-      req.body = roleValidationSchema.assignRoleToUserSchema.parse(req.body);
-      return roleController.assignRoleToUser(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// Remove role from user
-router.post(
-  "/remove-user",
-  (req: Request, res: Response, next: NextFunction) => {
-    try {
-      req.body = roleValidationSchema.removeRoleFromUserSchema.parse(req.body);
-      return roleController.removeRoleFromUser(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
 );
 
 export const roleRoutes = router;
