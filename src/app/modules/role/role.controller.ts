@@ -23,8 +23,7 @@ const getAllRoles = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: "Roles retrieved successfully",
-      meta: result.meta,
-      data: result.result,
+      data: result,
     });
   }
 );

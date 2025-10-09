@@ -27,8 +27,7 @@ const getAllPermissions = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: "Permissions retrieved successfully",
-      meta: result.meta,
-      data: result.result,
+      data: result,
     });
   }
 );

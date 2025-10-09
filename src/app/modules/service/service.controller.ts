@@ -34,8 +34,7 @@ const getAllService = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "Service data fetched!",
-    meta: result.meta,
-    data: result.result,
+    data: result,
   });
 });
 

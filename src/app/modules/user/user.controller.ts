@@ -24,8 +24,7 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "Admin data fetched!",
-    meta: result.meta,
-    data: result.result,
+    data: result,
   });
 });
 const getSingleUser = catchAsync(async (req: Request, res: Response) => {
