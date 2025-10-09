@@ -113,7 +113,7 @@ router.delete(
 router.post(
   "/:id/permissions",
   authGuard(),
-  permissionGuard("assign_permission"),
+  permissionGuard("update_role"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = roleValidationSchema.assignPermissionsSchema.parse(req.body);
@@ -128,7 +128,7 @@ router.post(
 router.delete(
   "/:roleId/permissions/:permissionId",
   authGuard(),
-  permissionGuard("assign_permission"),
+  permissionGuard("update_role"),
   roleController.removePermissionFromRole
 );
 
