@@ -124,7 +124,7 @@ const getAllUsers = async (
 };
 
 const getSingleUserFromDB = async (id: string) => {
-  return await prisma.user.findUniqueOrThrow({
+  const user = await prisma.user.findUniqueOrThrow({
     where: {
       id,
       OR: [{ userProfile: { isDeleted: false } }, { userProfile: null }],
@@ -146,6 +146,21 @@ const getSingleUserFromDB = async (id: string) => {
       },
     },
   });
+
+  // Transform to match frontend expectations
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    roles: user.roles.map((ur) => ur.role),
+    isActive: user.status === "ACTIVE",
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    contactNumber: user.userProfile?.contactNumber || "",
+    gender: user.userProfile?.gender || "MALE",
+    image: user.userProfile?.profilePhoto,
+    emailVerified: false, // Add this field if needed
+  };
 };
 
 const createAdmin = async (req: any): Promise<UserProfile> => {
