@@ -111,42 +111,26 @@ model User {
 
   isPasswordChangeRequired Boolean    @default(true)
   status                   UserStatus @default(ACTIVE)
+  refreshToken             String?
+  accessToken              String?
+  expiresAt                Int?
   createdAt                DateTime   @default(now())
   updatedAt                DateTime   @updatedAt
 
-  admin    Admin?
-  client   Client?
-  employee Employee?
-
-  roles UserRoleAssignment[]
+  userProfile UserProfile?
+  roles       UserRoleAssignment[]
 
   @@index([status])
   @@map("users")
 }
 
-model Admin {
-  id            String   @id @default(ulid())
-  userId        String   @unique
-  profilePhoto  String?
-  contactNumber String?
-  isDeleted     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blogs             Blog[]
-  leaveApplications LeaveApplication[]
-
-  @@map("admins")
-}
-
-model Client {
+model UserProfile {
   id            String   @id @default(ulid())
   userId        String   @unique
   profilePhoto  String?
   contactNumber String?
   address       String?
-  gender        Gender
+  gender        Gender?
   isDeleted     Boolean  @default(false)
   bio           String?
   website       String?
@@ -159,45 +143,31 @@ model Client {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comments Comment[]
-  projects Project[]
+  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blogs                     Blog[]
+  comments                  Comment[]
+  projects                  Project[]
+  employeeMilestones        EmployeeMilestone[]
+  leaveApplications         LeaveApplication[]
+  approvedLeaveApplications LeaveApplication[]  @relation("ApprovedBy")
 
-  @@map("clients")
-}
-
-model Employee {
-  id            String   @id @default(ulid())
-  userId        String   @unique
-  profilePhoto  String?
-  contactNumber String?
-  address       String?
-  gender        Gender
-  isDeleted     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employeeMilestones EmployeeMilestone[]
-  leaveApplications  LeaveApplication[]
-
-  @@map("employees")
+  @@map("user_profiles")
 }
 
 model Project {
-  id          String        @id @default(ulid())
-  name        String
-  description String?
-  status      ProjectStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  clientId    String
+  id            String        @id @default(ulid())
+  name          String
+  description   String?
+  status        ProjectStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userProfileId String
 
-  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  milestones Milestone[]
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  milestones  Milestone[]
 
   @@index([status])
-  @@index([clientId])
+  @@index([userProfileId])
   @@map("projects")
 }
 
@@ -219,17 +189,17 @@ model Milestone {
 }
 
 model EmployeeMilestone {
-  id          String                  @id @default(ulid())
-  employeeId  String
-  milestoneId String
-  status      EmployeeMilestoneStatus @default(ASSIGNED)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
+  id            String                  @id @default(ulid())
+  userProfileId String
+  milestoneId   String
+  status        EmployeeMilestoneStatus @default(ASSIGNED)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
 
-  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  milestone   Milestone   @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
-  @@unique([employeeId, milestoneId])
+  @@unique([userProfileId, milestoneId])
   @@map("employee_milestones")
 }
 
@@ -256,51 +226,51 @@ model ServiceMilestone {
 }
 
 model Blog {
-  id         String     @id @default(ulid())
-  title      String
-  content    String
-  coverImage String?
-  visibility Visibility @default(PUBLIC)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  adminId    String
+  id            String     @id @default(ulid())
+  title         String
+  content       String
+  coverImage    String?
+  visibility    Visibility @default(PUBLIC)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  userProfileId String
 
-  admin    Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  comments Comment[]
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  comments    Comment[]
 
   @@index([visibility])
   @@map("blogs")
 }
 
 model Comment {
-  id        String   @id @default(ulid())
-  content   String
-  clientId  String
-  blogId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(ulid())
+  content       String
+  userProfileId String
+  blogId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  blog        Blog        @relation(fields: [blogId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
 
 model LeaveApplication {
-  id         String      @id @default(ulid())
-  employeeId String
-  startDate  DateTime
-  endDate    DateTime
-  reason     String
-  status     LeaveStatus @default(PENDING)
-  approvedBy String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id            String      @id @default(ulid())
+  userProfileId String
+  startDate     DateTime
+  endDate       DateTime
+  reason        String
+  status        LeaveStatus @default(PENDING)
+  approvedBy    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  admin    Admin?   @relation(fields: [approvedBy], references: [id], onDelete: SetNull)
+  userProfile UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  approver    UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
 
-  @@index([employeeId])
+  @@index([userProfileId])
   @@index([status])
   @@index([approvedBy])
   @@map("leave_applications")

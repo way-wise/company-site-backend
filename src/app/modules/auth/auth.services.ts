@@ -27,6 +27,7 @@ const loginUser = async (payload: { email: string; password: string }) => {
   if (!isCorrectPassword) {
     throw new Error("Password is incorrect!");
   }
+
   const accessToken = jwtHelpers.generateToken(
     {
       email: userData.email,
@@ -42,6 +43,41 @@ const loginUser = async (payload: { email: string; password: string }) => {
     config.jwt.refresh_token_secret as Secret,
     config.jwt.refresh_token_expires_in as string
   );
+
+  // Calculate token expiration time (in seconds since epoch)
+  const expiresIn = config.jwt.expires_in as string;
+  const expirationMatch = expiresIn.match(/(\d+)([smhd])/);
+  let expiresAt = Math.floor(Date.now() / 1000); // Current time in seconds
+
+  if (expirationMatch) {
+    const value = parseInt(expirationMatch[1]);
+    const unit = expirationMatch[2];
+
+    switch (unit) {
+      case "s":
+        expiresAt += value;
+        break;
+      case "m":
+        expiresAt += value * 60;
+        break;
+      case "h":
+        expiresAt += value * 60 * 60;
+        break;
+      case "d":
+        expiresAt += value * 24 * 60 * 60;
+        break;
+    }
+  }
+
+  // Store tokens in database
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: {
+      accessToken,
+      refreshToken,
+      expiresAt,
+    },
+  });
 
   return {
     accessToken,
@@ -68,6 +104,14 @@ const refreshToken = async (token: string) => {
     },
   });
 
+  // Validate that the refresh token matches the one stored in database
+  if (userData.refreshToken !== token) {
+    throw new HTTPError(
+      httpStatus.UNAUTHORIZED,
+      "Invalid refresh token. Please login again."
+    );
+  }
+
   const accessToken = jwtHelpers.generateToken(
     {
       email: userData.email,
@@ -75,6 +119,40 @@ const refreshToken = async (token: string) => {
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
   );
+
+  // Calculate new token expiration time
+  const expiresIn = config.jwt.expires_in as string;
+  const expirationMatch = expiresIn.match(/(\d+)([smhd])/);
+  let expiresAt = Math.floor(Date.now() / 1000);
+
+  if (expirationMatch) {
+    const value = parseInt(expirationMatch[1]);
+    const unit = expirationMatch[2];
+
+    switch (unit) {
+      case "s":
+        expiresAt += value;
+        break;
+      case "m":
+        expiresAt += value * 60;
+        break;
+      case "h":
+        expiresAt += value * 60 * 60;
+        break;
+      case "d":
+        expiresAt += value * 24 * 60 * 60;
+        break;
+    }
+  }
+
+  // Update access token and expiration in database
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: {
+      accessToken,
+      expiresAt,
+    },
+  });
 
   return {
     accessToken,
@@ -200,9 +278,7 @@ const getMe = async (user: VerifiedUser) => {
       status: UserStatus.ACTIVE,
     },
     include: {
-      admin: true,
-      client: true,
-      employee: true,
+      userProfile: true,
       roles: {
         include: {
           role: {
@@ -220,9 +296,29 @@ const getMe = async (user: VerifiedUser) => {
   });
 
   // Remove sensitive data
-  const { password, ...userWithoutPassword } = userData;
+  const { password, accessToken, refreshToken, ...userWithoutPassword } =
+    userData;
 
   return userWithoutPassword;
+};
+
+const logout = async (user: VerifiedUser) => {
+  // Clear tokens from database
+  await prisma.user.update({
+    where: {
+      email: user.email,
+      status: UserStatus.ACTIVE,
+    },
+    data: {
+      accessToken: null,
+      refreshToken: null,
+      expiresAt: null,
+    },
+  });
+
+  return {
+    message: "Logged out successfully",
+  };
 };
 
 export const authServices = {
@@ -232,4 +328,5 @@ export const authServices = {
   forgotPassword,
   resetPassword,
   getMe,
+  logout,
 };

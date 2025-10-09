@@ -112,27 +112,34 @@ const getMe = catchAsync(
   }
 );
 
-const logout = catchAsync(async (req: Request, res: Response) => {
-  // Clear both access and refresh token cookies
-  res.clearCookie("accessToken", {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: "strict",
-  });
+const logout = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const user = req.user;
 
-  res.clearCookie("refreshToken", {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: "strict",
-  });
+    // Clear tokens from database
+    await authServices.logout(user);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Logged out successfully!",
-    data: null,
-  });
-});
+    // Clear both access and refresh token cookies
+    res.clearCookie("accessToken", {
+      secure: config.env === "production",
+      httpOnly: true,
+      sameSite: "strict",
+    });
+
+    res.clearCookie("refreshToken", {
+      secure: config.env === "production",
+      httpOnly: true,
+      sameSite: "strict",
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Logged out successfully!",
+      data: null,
+    });
+  }
+);
 
 export const authController = {
   loginUser,

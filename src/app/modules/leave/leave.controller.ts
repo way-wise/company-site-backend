@@ -12,22 +12,22 @@ const applyForLeave = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
     const user = req.user;
 
-    // Get employee ID from user
-    const employee = await prisma.employee.findUnique({
+    // Get user profile from user
+    const userProfile = await prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
 
-    if (!employee) {
+    if (!userProfile) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: "Employee profile not found",
+        message: "User profile not found",
         data: null,
       });
     }
 
     const result = await LeaveService.createLeaveApplication({
-      employeeId: employee.id,
+      employeeId: userProfile.id, // Maps to userProfileId internally
       startDate: req.body.startDate,
       endDate: req.body.endDate,
       reason: req.body.reason,
@@ -46,16 +46,16 @@ const getMyLeaves = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
     const user = req.user;
 
-    // Get employee ID from user
-    const employee = await prisma.employee.findUnique({
+    // Get user profile from user
+    const userProfile = await prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
 
-    if (!employee) {
+    if (!userProfile) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: "Employee profile not found",
+        message: "User profile not found",
         data: null,
       });
     }
@@ -67,7 +67,7 @@ const getMyLeaves = catchAsync(
     );
 
     const result = await LeaveService.getMyLeaveApplications(
-      employee.id,
+      userProfile.id,
       validQueryParams,
       paginationAndSortingQueryParams
     );
@@ -130,23 +130,23 @@ const approveLeave = catchAsync(
     const { id } = req.params;
     const user = req.user;
 
-    // Get admin ID from user
-    const admin = await prisma.admin.findUnique({
+    // Get user profile from user
+    const userProfile = await prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
 
-    if (!admin) {
+    if (!userProfile) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: "Admin profile not found",
+        message: "User profile not found",
         data: null,
       });
     }
 
     const result = await LeaveService.updateLeaveStatus(id, {
       status: "APPROVED",
-      approvedBy: admin.id,
+      approvedBy: userProfile.id,
     });
 
     sendResponse(res, {
@@ -163,23 +163,23 @@ const rejectLeave = catchAsync(
     const { id } = req.params;
     const user = req.user;
 
-    // Get admin ID from user
-    const admin = await prisma.admin.findUnique({
+    // Get user profile from user
+    const userProfile = await prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
 
-    if (!admin) {
+    if (!userProfile) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: "Admin profile not found",
+        message: "User profile not found",
         data: null,
       });
     }
 
     const result = await LeaveService.updateLeaveStatus(id, {
       status: "REJECTED",
-      approvedBy: admin.id,
+      approvedBy: userProfile.id,
     });
 
     sendResponse(res, {
@@ -196,21 +196,24 @@ const deleteLeave = catchAsync(
     const { id } = req.params;
     const user = req.user;
 
-    // Get employee ID from user
-    const employee = await prisma.employee.findUnique({
+    // Get user profile from user
+    const userProfile = await prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
 
-    if (!employee) {
+    if (!userProfile) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: "Employee profile not found",
+        message: "User profile not found",
         data: null,
       });
     }
 
-    const result = await LeaveService.deleteLeaveApplication(id, employee.id);
+    const result = await LeaveService.deleteLeaveApplication(
+      id,
+      userProfile.id
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

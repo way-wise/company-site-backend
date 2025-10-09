@@ -2,7 +2,7 @@ import { LeaveStatus } from "@prisma/client";
 
 export interface ILeaveApplication {
   id: string;
-  employeeId: string;
+  userProfileId: string;
   startDate: Date;
   endDate: Date;
   reason: string;
@@ -13,7 +13,7 @@ export interface ILeaveApplication {
 }
 
 export interface ICreateLeaveApplication {
-  employeeId: string;
+  employeeId: string; // Keep for backward compatibility, but maps to userProfileId
   startDate: Date;
   endDate: Date;
   reason: string;
@@ -25,7 +25,7 @@ export interface IUpdateLeaveStatus {
 }
 
 export interface ILeaveApplicationWithRelations extends ILeaveApplication {
-  employee: {
+  userProfile: {
     id: string;
     userId: string;
     user: {
@@ -34,7 +34,7 @@ export interface ILeaveApplicationWithRelations extends ILeaveApplication {
       email: string;
     };
   };
-  admin?: {
+  approver?: {
     id: string;
     userId: string;
     user: {

@@ -13,12 +13,12 @@ import {
 const createLeaveApplication = async (
   data: ICreateLeaveApplication
 ): Promise<ILeaveApplication> => {
-  const { employeeId, startDate, endDate } = data;
+  const { employeeId: userProfileId, startDate, endDate } = data;
 
   // Check for overlapping leave applications
   const overlappingLeave = await prisma.leaveApplication.findFirst({
     where: {
-      employeeId,
+      userProfileId,
       status: {
         in: ["PENDING", "APPROVED"],
       },
@@ -54,7 +54,7 @@ const createLeaveApplication = async (
 
   const result = await prisma.leaveApplication.create({
     data: {
-      employeeId,
+      userProfileId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       reason: data.reason,
@@ -65,14 +65,16 @@ const createLeaveApplication = async (
 };
 
 const getMyLeaveApplications = async (
-  employeeId: string,
+  userProfileId: string,
   filters: any,
   paginationOptions: any
 ): Promise<{ result: ILeaveApplicationWithRelations[]; meta: any }> => {
   const { page, limit, skip, sortBy, sortOrder } =
     generatePaginateAndSortOptions(paginationOptions);
 
-  const andConditions: Prisma.LeaveApplicationWhereInput[] = [{ employeeId }];
+  const andConditions: Prisma.LeaveApplicationWhereInput[] = [
+    { userProfileId },
+  ];
 
   if (filters.status) {
     andConditions.push({
@@ -106,7 +108,7 @@ const getMyLeaveApplications = async (
     orderBy:
       sortBy && sortOrder ? { [sortBy]: sortOrder } : { createdAt: "desc" },
     include: {
-      employee: {
+      userProfile: {
         include: {
           user: {
             select: {
@@ -117,7 +119,7 @@ const getMyLeaveApplications = async (
           },
         },
       },
-      admin: {
+      approver: {
         include: {
           user: {
             select: {
@@ -160,9 +162,9 @@ const getAllLeaveApplications = async (
     });
   }
 
-  if (filters.employeeId) {
+  if (filters.employeeId || filters.userProfileId) {
     andConditions.push({
-      employeeId: filters.employeeId,
+      userProfileId: filters.employeeId || filters.userProfileId,
     });
   }
 
@@ -198,7 +200,7 @@ const getAllLeaveApplications = async (
     orderBy:
       sortBy && sortOrder ? { [sortBy]: sortOrder } : { createdAt: "desc" },
     include: {
-      employee: {
+      userProfile: {
         include: {
           user: {
             select: {
@@ -209,7 +211,7 @@ const getAllLeaveApplications = async (
           },
         },
       },
-      admin: {
+      approver: {
         include: {
           user: {
             select: {
@@ -245,7 +247,7 @@ const getSingleLeaveApplication = async (
       id,
     },
     include: {
-      employee: {
+      userProfile: {
         include: {
           user: {
             select: {
@@ -256,7 +258,7 @@ const getSingleLeaveApplication = async (
           },
         },
       },
-      admin: {
+      approver: {
         include: {
           user: {
             select: {
@@ -299,7 +301,7 @@ const updateLeaveStatus = async (
       approvedBy: data.approvedBy,
     },
     include: {
-      employee: {
+      userProfile: {
         include: {
           user: {
             select: {
@@ -310,7 +312,7 @@ const updateLeaveStatus = async (
           },
         },
       },
-      admin: {
+      approver: {
         include: {
           user: {
             select: {
@@ -329,7 +331,7 @@ const updateLeaveStatus = async (
 
 const deleteLeaveApplication = async (
   id: string,
-  employeeId: string
+  userProfileId: string
 ): Promise<ILeaveApplication> => {
   const existingLeave = await prisma.leaveApplication.findUnique({
     where: { id },
@@ -339,7 +341,7 @@ const deleteLeaveApplication = async (
     throw new HTTPError(httpStatus.NOT_FOUND, "Leave application not found");
   }
 
-  if (existingLeave.employeeId !== employeeId) {
+  if (existingLeave.userProfileId !== userProfileId) {
     throw new HTTPError(
       httpStatus.FORBIDDEN,
       "You can only delete your own leave applications"
