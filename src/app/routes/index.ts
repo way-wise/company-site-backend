@@ -2,6 +2,8 @@ import express from "express";
 import { AdminRoutes } from "../modules/admin/admin.routes";
 import { authRoutes } from "../modules/auth/auth.routes";
 import { leaveRoutes } from "../modules/leave/leave.routes";
+import { permissionRoutes } from "../modules/permission/permission.routes";
+import { roleRoutes } from "../modules/role/role.routes";
 import { ServiceRoutes } from "../modules/service/service.routes";
 import { userRoutes } from "../modules/user/user.routes";
 
@@ -27,6 +29,14 @@ const moduleRoutes = [
   {
     path: "/leaves",
     route: leaveRoutes,
+  },
+  {
+    path: "/permissions",
+    route: permissionRoutes,
+  },
+  {
+    path: "/roles",
+    route: roleRoutes,
   },
 ];
 

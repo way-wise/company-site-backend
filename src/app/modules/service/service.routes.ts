@@ -1,6 +1,5 @@
-import { UserRole } from "@prisma/client";
 import express from "express";
-import authGuard from "../../middlewares/authGuard";
+import roleGuard from "../../middlewares/roleGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { ServiceController } from "./service.controller";
 import { serviceValidationSchemas } from "./service.validationSchema";
@@ -9,7 +8,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  // authGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  // roleGuard("ADMIN", "SUPER_ADMIN"),
   // validateRequest(serviceValidationSchemas.create),
   ServiceController.createService
 );
@@ -20,14 +19,14 @@ router.get("/:id", ServiceController.getSingleService);
 
 router.patch(
   "/:id",
-  authGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  roleGuard("ADMIN", "SUPER_ADMIN"),
   validateRequest(serviceValidationSchemas.update),
   ServiceController.updateService
 );
 
 router.delete(
   "/:id",
-  authGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  roleGuard("ADMIN", "SUPER_ADMIN"),
   ServiceController.deleteService
 );
 

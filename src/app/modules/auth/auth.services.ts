@@ -30,7 +30,6 @@ const loginUser = async (payload: { email: string; password: string }) => {
   const accessToken = jwtHelpers.generateToken(
     {
       email: userData.email,
-      role: userData.role,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
@@ -39,7 +38,6 @@ const loginUser = async (payload: { email: string; password: string }) => {
   const refreshToken = jwtHelpers.generateToken(
     {
       email: userData.email,
-      role: userData.role,
     },
     config.jwt.refresh_token_secret as Secret,
     config.jwt.refresh_token_expires_in as string
@@ -48,7 +46,7 @@ const loginUser = async (payload: { email: string; password: string }) => {
   return {
     accessToken,
     refreshToken,
-    passwordChangeRequired: userData.passwordChangeRequired,
+    passwordChangeRequired: userData.isPasswordChangeRequired,
   };
 };
 
@@ -73,7 +71,6 @@ const refreshToken = async (token: string) => {
   const accessToken = jwtHelpers.generateToken(
     {
       email: userData.email,
-      role: userData.role,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
@@ -81,7 +78,7 @@ const refreshToken = async (token: string) => {
 
   return {
     accessToken,
-    passwordChangeRequired: userData.passwordChangeRequired,
+    passwordChangeRequired: userData.isPasswordChangeRequired,
   };
 };
 
@@ -107,14 +104,14 @@ const changePassword = async (user: VerifiedUser, payload: any) => {
   //@ hashing the new password
   const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
 
-  //@ updating the password and also changing the passwordChangeRequired to false
+  //@ updating the password and also changing the isPasswordChangeRequired to false
   await prisma.user.update({
     where: {
       email: userData.email,
     },
     data: {
       password: hashedPassword,
-      passwordChangeRequired: false,
+      isPasswordChangeRequired: false,
     },
   });
 
@@ -136,7 +133,6 @@ const forgotPassword = async ({ email }: { email: string }) => {
   const resetPasswordToken = jwtHelpers.generateToken(
     {
       email: userData.email,
-      role: userData.role,
     },
     config.jwt.reset_password_token_secret as Secret,
     config.jwt.reset_token_expires_in as string
@@ -207,6 +203,19 @@ const getMe = async (user: VerifiedUser) => {
       admin: true,
       client: true,
       employee: true,
+      roles: {
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 

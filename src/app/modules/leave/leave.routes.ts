@@ -1,5 +1,5 @@
 import express from "express";
-import authGuard from "../../middlewares/authGuard";
+import roleGuard from "../../middlewares/roleGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { LeaveController } from "./leave.controller";
 import { leaveValidation } from "./leave.validationSchema";
@@ -9,16 +9,16 @@ const router = express.Router();
 // Employee routes
 router.post(
   "/apply",
-  authGuard("EMPLOYEE"),
+  roleGuard("EMPLOYEE"),
   validateRequest(leaveValidation.createLeaveApplicationSchema),
   LeaveController.applyForLeave
 );
 
-router.get("/mine", authGuard("EMPLOYEE"), LeaveController.getMyLeaves);
+router.get("/mine", roleGuard("EMPLOYEE"), LeaveController.getMyLeaves);
 
 router.delete(
   "/:id",
-  authGuard("EMPLOYEE"),
+  roleGuard("EMPLOYEE"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.deleteLeave
 );
@@ -26,27 +26,27 @@ router.delete(
 // Admin routes
 router.get(
   "/all",
-  authGuard("ADMIN", "SUPER_ADMIN"),
+  roleGuard("ADMIN", "SUPER_ADMIN"),
   LeaveController.getAllLeaves
 );
 
 router.get(
   "/:id",
-  authGuard("ADMIN", "SUPER_ADMIN"),
+  roleGuard("ADMIN", "SUPER_ADMIN"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.getSingleLeave
 );
 
 router.patch(
   "/:id/approve",
-  authGuard("ADMIN", "SUPER_ADMIN"),
+  roleGuard("ADMIN", "SUPER_ADMIN"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.approveLeave
 );
 
 router.patch(
   "/:id/reject",
-  authGuard("ADMIN", "SUPER_ADMIN"),
+  roleGuard("ADMIN", "SUPER_ADMIN"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.rejectLeave
 );

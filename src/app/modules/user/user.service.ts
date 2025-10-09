@@ -1,4 +1,4 @@
-import { Admin, Client, Employee, Prisma, UserRole } from "@prisma/client";
+import { Admin, Client, Employee, Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import uploadImageS3 from "../../../helpers/s3Uploader";
@@ -11,6 +11,28 @@ import {
 import { searchableFields } from "./user.constant";
 import { IUserFilterParams } from "./user.interface";
 const meiliClientIndex = meiliClient.index("clients");
+
+// Helper function to assign default role to user
+const assignDefaultRole = async (userId: string, roleName: string) => {
+  // Find the role by name
+  const role = await prisma.role.findUnique({
+    where: { name: roleName },
+  });
+
+  if (!role) {
+    throw new Error(
+      `Role ${roleName} not found. Please run seed script first.`
+    );
+  }
+
+  // Assign role to user
+  await prisma.userRoleAssignment.create({
+    data: {
+      userId,
+      roleId: role.id,
+    },
+  });
+};
 
 const getAllUsers = async (
   queryParams: IUserFilterParams,
@@ -28,16 +50,13 @@ const getAllUsers = async (
   // filtering out the soft deleted users
   conditions.push({
     OR: [
+      { admin: { isDeleted: false } },
+      { client: { isDeleted: false } },
+      { employee: { isDeleted: false } },
+      // Users without admin/client/employee profiles (like SUPER_ADMIN)
       {
-        AND: [{ role: "ADMIN" }, { admin: { isDeleted: false } }],
+        AND: [{ admin: null }, { client: null }, { employee: null }],
       },
-      {
-        AND: [{ role: "CLIENT" }, { client: { isDeleted: false } }],
-      },
-      {
-        AND: [{ role: "EMPLOYEE" }, { employee: { isDeleted: false } }],
-      },
-      { role: "SUPER_ADMIN" }, // SUPER_ADMIN doesn't have soft delete
     ],
   });
 
@@ -68,6 +87,11 @@ const getAllUsers = async (
       admin: true,
       client: true,
       employee: true,
+      roles: {
+        include: {
+          role: true,
+        },
+      },
     },
   });
 
@@ -80,7 +104,7 @@ const getAllUsers = async (
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    roles: user.roles.map((ur) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -120,6 +144,19 @@ const getSingleUserFromDB = async (id: string) => {
       admin: true,
       client: true,
       employee: true,
+      roles: {
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 };
@@ -127,8 +164,6 @@ const getSingleUserFromDB = async (id: string) => {
 const createAdmin = async (req: any): Promise<Admin> => {
   if (req.file) {
     const uploadedFileUrl = await uploadImageS3(req.file);
-    // const uploadedFile = await fileUploader.saveToCloudinary(req.file);
-    // req.body.admin.profilePhoto = uploadedFile?.secure_url;
     req.body.admin.profilePhoto = uploadedFileUrl;
   }
 
@@ -138,13 +173,18 @@ const createAdmin = async (req: any): Promise<Admin> => {
     name: req.body.admin.name,
     email: req.body.admin.email,
     password: hashedPassword,
-    role: UserRole.ADMIN,
   };
 
   const result = await prisma.$transaction(async (txClient) => {
+    // Create user
     const newUser = await txClient.user.create({
       data: userData,
     });
+
+    // Assign ADMIN role
+    await assignDefaultRole(newUser.id, "ADMIN");
+
+    // Create admin profile
     const { name, email, ...adminData } = req.body.admin;
     const newAdmin = await txClient.admin.create({
       data: {
@@ -152,8 +192,6 @@ const createAdmin = async (req: any): Promise<Admin> => {
         userId: newUser.id,
       },
     });
-
-    const { id, profilePhoto } = newAdmin;
 
     return newAdmin;
   });
@@ -178,7 +216,6 @@ const createClient = async (req: any): Promise<Client> => {
       name: req.body.client.name,
       email: req.body.client.email,
       password: hashedPassword,
-      role: UserRole.CLIENT,
     };
 
     const result = await prisma.$transaction(async (txClient) => {
@@ -186,6 +223,9 @@ const createClient = async (req: any): Promise<Client> => {
       const newUser = await txClient.user.create({
         data: userData,
       });
+
+      // Assign CLIENT role
+      await assignDefaultRole(newUser.id, "CLIENT");
 
       // Create client profile
       const { name, email, ...clientData } = req.body.client;
@@ -240,7 +280,6 @@ const createEmployee = async (req: any): Promise<Employee> => {
       name: req.body.employee.name,
       email: req.body.employee.email,
       password: hashedPassword,
-      role: UserRole.EMPLOYEE,
     };
 
     const result = await prisma.$transaction(async (txClient) => {
@@ -248,6 +287,9 @@ const createEmployee = async (req: any): Promise<Employee> => {
       const newUser = await txClient.user.create({
         data: userData,
       });
+
+      // Assign EMPLOYEE role
+      await assignDefaultRole(newUser.id, "EMPLOYEE");
 
       // Create employee profile
       const { name, email, ...employeeData } = req.body.employee;
@@ -277,6 +319,11 @@ const updateUser = async (userId: string, userData: any) => {
       admin: true,
       client: true,
       employee: true,
+      roles: {
+        include: {
+          role: true,
+        },
+      },
     },
   });
 
@@ -290,7 +337,7 @@ const updateUser = async (userId: string, userData: any) => {
       user.employee?.contactNumber ||
       "",
     gender: user.client?.gender || user.employee?.gender || "MALE",
-    role: user.role,
+    roles: user.roles.map((ur) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -312,6 +359,11 @@ const banUser = async (userId: string, banReason: string) => {
       admin: true,
       client: true,
       employee: true,
+      roles: {
+        include: {
+          role: true,
+        },
+      },
     },
   });
 
@@ -325,7 +377,7 @@ const banUser = async (userId: string, banReason: string) => {
       user.employee?.contactNumber ||
       "",
     gender: user.client?.gender || user.employee?.gender || "MALE",
-    role: user.role,
+    roles: user.roles.map((ur) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -345,6 +397,11 @@ const unbanUser = async (userId: string) => {
       admin: true,
       client: true,
       employee: true,
+      roles: {
+        include: {
+          role: true,
+        },
+      },
     },
   });
 
@@ -358,7 +415,7 @@ const unbanUser = async (userId: string) => {
       user.employee?.contactNumber ||
       "",
     gender: user.client?.gender || user.employee?.gender || "MALE",
-    role: user.role,
+    roles: user.roles.map((ur) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -384,18 +441,18 @@ const deleteUser = async (userId: string) => {
     throw new Error("User not found");
   }
 
-  // Soft delete based on role
-  if (user.role === "ADMIN" && user.admin) {
+  // Soft delete based on which profile exists
+  if (user.admin) {
     await prisma.admin.update({
       where: { id: user.admin.id },
       data: { isDeleted: true },
     });
-  } else if (user.role === "CLIENT" && user.client) {
+  } else if (user.client) {
     await prisma.client.update({
       where: { id: user.client.id },
       data: { isDeleted: true },
     });
-  } else if (user.role === "EMPLOYEE" && user.employee) {
+  } else if (user.employee) {
     await prisma.employee.update({
       where: { id: user.employee.id },
       data: { isDeleted: true },

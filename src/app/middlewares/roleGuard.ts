@@ -8,11 +8,10 @@ import prisma from "../../shared/prismaClient";
 import { HTTPError } from "../errors/HTTPError";
 
 /**
- * Basic authentication guard - just verifies the token
- * For role-based access, use roleGuard
- * For permission-based access, use permissionGuard
+ * Middleware to check if user has required roles
+ * @param roles - Array of role names required (user needs ANY of these)
  */
-const authGuard = () => {
+const roleGuard = (...roles: string[]) => {
   return async (
     req: Request & { user?: any },
     _res: Response,
@@ -25,39 +24,33 @@ const authGuard = () => {
         throw new HTTPError(httpStatus.UNAUTHORIZED, "You are not authorized");
       }
 
+      // Verify token
       const verifiedUser = jwtHelpers.verifyToken(
         token,
         config.jwt.jwt_secret as Secret
       );
 
-      // Get user from database to attach full user info including ID
+      // Get user from database to get the user ID
       const user = await prisma.user.findUniqueOrThrow({
         where: { email: verifiedUser.email },
-        include: {
-          roles: {
-            include: {
-              role: {
-                include: {
-                  rolePermissions: {
-                    include: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
       });
 
-      // Attach user with permissions to request
-      req.user = {
-        ...verifiedUser,
-        id: user.id,
-        roles: user.roles.map((ur) => ur.role),
-        permissions: await permissionHelper.getUserPermissions(user.id),
-      };
+      // Check if user has any of the required roles
+      if (roles.length > 0) {
+        const hasRequiredRole = await permissionHelper.hasAnyRole(
+          user.id,
+          roles
+        );
 
+        if (!hasRequiredRole) {
+          throw new HTTPError(
+            httpStatus.FORBIDDEN,
+            "You don't have the required role to perform this action"
+          );
+        }
+      }
+
+      req.user = { ...verifiedUser, id: user.id };
       next();
     } catch (error) {
       next(error);
@@ -65,4 +58,4 @@ const authGuard = () => {
   };
 };
 
-export default authGuard;
+export default roleGuard;
