@@ -40,29 +40,32 @@ const assignDefaultRole = async (
   });
 };
 
-const getAllUsers = async (
+// Helper function to build base user query conditions
+const buildUserQueryConditions = (
   queryParams: IUserFilterParams,
-  paginationAndSortingQueryParams: IPaginationParams & ISortingParams
+  roleId?: string
 ) => {
   const { q, ...otherQueryParams } = queryParams;
-
-  const { limit, skip, page, sortBy, sortOrder } =
-    generatePaginateAndSortOptions({
-      ...paginationAndSortingQueryParams,
-    });
-
   const conditions: Prisma.UserWhereInput[] = [];
 
-  // filtering out the soft deleted users
+  // Filter out soft deleted users
   conditions.push({
     OR: [
       { userProfile: { isDeleted: false } },
-      // Users without profiles (like SUPER_ADMIN)
-      { userProfile: null },
+      { userProfile: null }, // Users without profiles (like SUPER_ADMIN)
     ],
   });
 
-  //@ searching
+  // Filter by role if roleId is provided
+  if (roleId) {
+    conditions.push({
+      roles: {
+        some: { roleId },
+      },
+    });
+  }
+
+  // Searching
   if (q) {
     const searchConditions = searchableFields.map((field) => ({
       [field]: { contains: q, mode: "insensitive" },
@@ -70,7 +73,7 @@ const getAllUsers = async (
     conditions.push({ OR: searchConditions });
   }
 
-  //@ filtering with exact value
+  // Filtering with exact value
   if (Object.keys(otherQueryParams).length > 0) {
     const filterData = Object.keys(otherQueryParams).map((key) => ({
       [key]: (otherQueryParams as any)[key],
@@ -78,48 +81,51 @@ const getAllUsers = async (
     conditions.push(...filterData);
   }
 
-  const result = await prisma.user.findMany({
-    where: { AND: conditions },
-    skip,
-    take: limit,
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
-    include: {
-      userProfile: true,
-      roles: {
-        include: {
-          role: true,
+  return conditions;
+};
+
+// Helper function to transform user data
+const transformUserData = (user: any) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  roles: user.roles.map((ur: any) => ur.role),
+  isActive: user.status === "ACTIVE",
+  createdAt: user.createdAt.toISOString(),
+  updatedAt: user.updatedAt.toISOString(),
+  contactNumber: user.userProfile?.contactNumber || "",
+  gender: user.userProfile?.gender || "MALE",
+  image: user.userProfile?.profilePhoto,
+});
+
+const getAllUsers = async (
+  queryParams: IUserFilterParams,
+  paginationAndSortingQueryParams: IPaginationParams & ISortingParams
+) => {
+  const { limit, skip, page, sortBy, sortOrder } =
+    generatePaginateAndSortOptions(paginationAndSortingQueryParams);
+
+  const conditions = buildUserQueryConditions(queryParams);
+
+  const [result, total] = await Promise.all([
+    prisma.user.findMany({
+      where: { AND: conditions },
+      skip,
+      take: limit,
+      orderBy: { [sortBy]: sortOrder },
+      include: {
+        userProfile: true,
+        roles: {
+          include: { role: true },
         },
       },
-    },
-  });
-
-  const total = await prisma.user.count({
-    where: { AND: conditions },
-  });
-
-  // Transform the data to match frontend expectations
-  const transformedResult = result.map((user) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    roles: user.roles.map((ur) => ur.role),
-    isActive: user.status === "ACTIVE",
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
-    contactNumber: user.userProfile?.contactNumber || "",
-    gender: user.userProfile?.gender || "MALE",
-    image: user.userProfile?.profilePhoto,
-  }));
+    }),
+    prisma.user.count({ where: { AND: conditions } }),
+  ]);
 
   return {
-    meta: {
-      page,
-      limit,
-      total,
-    },
-    result: transformedResult,
+    meta: { page, limit, total },
+    result: result.map(transformUserData),
   };
 };
 
@@ -425,6 +431,39 @@ const deleteUser = async (userId: string) => {
   return { message: "User deleted successfully" };
 };
 
+// Get users by role
+const getUsersByRole = async (
+  roleId: string,
+  queryParams: IUserFilterParams,
+  paginationAndSortingQueryParams: IPaginationParams & ISortingParams
+) => {
+  const { limit, skip, page, sortBy, sortOrder } =
+    generatePaginateAndSortOptions(paginationAndSortingQueryParams);
+
+  const conditions = buildUserQueryConditions(queryParams, roleId);
+
+  const [result, total] = await Promise.all([
+    prisma.user.findMany({
+      where: { AND: conditions },
+      skip,
+      take: limit,
+      orderBy: { [sortBy]: sortOrder },
+      include: {
+        userProfile: true,
+        roles: {
+          include: { role: true },
+        },
+      },
+    }),
+    prisma.user.count({ where: { AND: conditions } }),
+  ]);
+
+  return {
+    meta: { page, limit, total },
+    result: result.map(transformUserData),
+  };
+};
+
 export const userService = {
   getAllUsers,
   createAdmin,
@@ -435,4 +474,5 @@ export const userService = {
   banUser,
   unbanUser,
   deleteUser,
+  getUsersByRole,
 };

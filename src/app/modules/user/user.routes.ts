@@ -13,6 +13,17 @@ router.get("/all-users", (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+router.get(
+  "/by-role/:roleId",
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      return userController.getUsersByRole(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.post(
   "/create-admin-with-file",
   // authGuard(UserRole.SUPER_ADMIN, UserRole.ADMIN),

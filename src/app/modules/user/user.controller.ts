@@ -118,6 +118,28 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
+  const { roleId } = req.params;
+  const validQueryParams = filterValidQueryParams(req.query, validParams);
+  const paginationAndSortingQueryParams = filterValidQueryParams(
+    req.query,
+    paginationAndSortingParams
+  );
+
+  const result = await userService.getUsersByRole(
+    roleId,
+    validQueryParams,
+    paginationAndSortingQueryParams
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users with role fetched successfully!",
+    data: result,
+  });
+});
+
 export const userController = {
   createAdmin,
   createClient,
@@ -128,4 +150,5 @@ export const userController = {
   banUser,
   unbanUser,
   deleteUser,
+  getUsersByRole,
 };
