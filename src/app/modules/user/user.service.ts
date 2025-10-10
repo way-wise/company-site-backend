@@ -105,7 +105,19 @@ const getAllUsers = async (
   const { limit, skip, page, sortBy, sortOrder } =
     generatePaginateAndSortOptions(paginationAndSortingQueryParams);
 
-  const conditions = buildUserQueryConditions(queryParams);
+  // Extract role name from queryParams and find the roleId
+  let roleId: string | undefined = undefined;
+  if (queryParams.role) {
+    const role = await prisma.role.findUnique({
+      where: { name: queryParams.role },
+    });
+    roleId = role?.id;
+  }
+
+  // Remove role from queryParams since we'll use roleId instead
+  const { role, ...otherQueryParams } = queryParams;
+
+  const conditions = buildUserQueryConditions(otherQueryParams, roleId);
 
   const [result, total] = await Promise.all([
     prisma.user.findMany({
