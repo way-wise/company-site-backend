@@ -6,8 +6,6 @@ import { roleValidationSchema } from "./role.validationSchema";
 
 const router = express.Router();
 
-// ⚠️ IMPORTANT: Specific routes MUST come before parameterized routes like /:id
-// Otherwise Express will match them to /:id with the path segment as the id
 
 // Get user roles (MUST come before /:id)
 router.get(

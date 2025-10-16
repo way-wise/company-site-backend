@@ -52,6 +52,21 @@ enum LeaveStatus {
   REJECTED
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 model Permission {
   id          String   @id @default(ulid())
   name        String   @unique
@@ -78,12 +93,12 @@ model Role {
 }
 
 model RolePermission {
-  id           String   @id @default(ulid())
+  id           String     @id @default(ulid())
   roleId       String
   permissionId String
-  createdAt    DateTime @default(now())
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
@@ -149,6 +164,9 @@ model UserProfile {
   employeeMilestones        EmployeeMilestone[]
   leaveApplications         LeaveApplication[]
   approvedLeaveApplications LeaveApplication[]  @relation("ApprovedBy")
+  Task                      Task[]
+  TaskAssignment            TaskAssignment[]
+  TaskComment               TaskComment[]
 
   @@map("user_profiles")
 }
@@ -182,9 +200,65 @@ model Milestone {
   project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   employeeMilestones EmployeeMilestone[]
   serviceMilestones  ServiceMilestone[]
+  Task               Task[]
 
   @@index([status])
   @@map("milestones")
+}
+
+model Task {
+  id             String     @id @default(ulid())
+  title          String
+  description    String?
+  milestoneId    String
+  creatorId      String? // who created the task (optional)
+  status         TaskStatus @default(TODO)
+  priority       Priority   @default(MEDIUM)
+  progress       Int        @default(0) // 0..100, denormalized for quick display
+  estimatedHours Int?
+  spentHours     Int?       @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  milestone Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  creator   UserProfile? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+
+  assignments TaskAssignment[]
+  comments    TaskComment[]
+
+  @@index([status])
+  @@index([priority])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id         String   @id @default(ulid())
+  taskId     String
+  userId     String // user_profile id
+  assignedAt DateTime @default(now())
+  role       String? // e.g., "owner", "reviewer", "implementer"
+  createdAt  DateTime @default(now())
+
+  task        Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userProfile UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@map("task_assignments")
+}
+
+model TaskComment {
+  id        String   @id @default(ulid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  task        Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userProfile UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("task_comments")
 }
 
 model EmployeeMilestone {
