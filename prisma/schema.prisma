@@ -164,9 +164,9 @@ model UserProfile {
   employeeMilestones        EmployeeMilestone[]
   leaveApplications         LeaveApplication[]
   approvedLeaveApplications LeaveApplication[]  @relation("ApprovedBy")
-  Task                      Task[]
-  TaskAssignment            TaskAssignment[]
-  TaskComment               TaskComment[]
+  tasks                     Task[]
+  taskAssignments           TaskAssignment[]
+  taskComments              TaskComment[]
 
   @@map("user_profiles")
 }
@@ -202,6 +202,7 @@ model Milestone {
   serviceMilestones  ServiceMilestone[]
   Task               Task[]
 
+  @@index([projectId])
   @@index([status])
   @@map("milestones")
 }
@@ -230,33 +231,36 @@ model Task {
 
   @@index([status])
   @@index([priority])
+  @@index([milestoneId, status])
+  @@index([creatorId])
   @@map("tasks")
 }
 
 model TaskAssignment {
   id         String   @id @default(ulid())
   taskId     String
-  userId     String // user_profile id
   assignedAt DateTime @default(now())
   role       String? // e.g., "owner", "reviewer", "implementer"
   createdAt  DateTime @default(now())
 
-  task        Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userProfile UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  @@unique([taskId, userId])
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userProfileId])
   @@map("task_assignments")
 }
 
 model TaskComment {
   id        String   @id @default(ulid())
   taskId    String
-  userId    String
   content   String
   createdAt DateTime @default(now())
 
-  task        Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userProfile UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@map("task_comments")
 }
@@ -296,6 +300,11 @@ model ServiceMilestone {
   milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@unique([serviceId, milestoneId])
+  @@index([serviceId])
+  @@index([milestoneId])
+  @@map("service_milestones")
 }
 
 model Blog {
@@ -326,6 +335,8 @@ model Comment {
   userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
   blog        Blog        @relation(fields: [blogId], references: [id], onDelete: Cascade)
 
+  @@index([blogId])
+  @@index([userProfileId])
   @@map("comments")
 }
 
