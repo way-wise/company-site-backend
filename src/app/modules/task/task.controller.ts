@@ -53,6 +53,9 @@ const getSingleTask = catchAsync(async (req: Request, res: Response) => {
 const updateTask = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
 
+  console.log("Update task request - ID:", id);
+  console.log("Update task request - Body:", req.body);
+
   const result = await TaskService.updateTaskIntoDB(id, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
