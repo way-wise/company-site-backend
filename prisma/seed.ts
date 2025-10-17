@@ -77,6 +77,12 @@ async function main() {
       "delete_project",
       "manage_milestones",
 
+      // Milestone Management
+      "create_milestone",
+      "read_milestone",
+      "update_milestone",
+      "delete_milestone",
+
       // Service Management
       "read_service",
 
@@ -170,6 +176,7 @@ async function main() {
     const employeePermissionNames = [
       "read_project",
       "manage_milestones",
+      "read_milestone",
       "create_leave",
       "read_leave",
       "update_leave",

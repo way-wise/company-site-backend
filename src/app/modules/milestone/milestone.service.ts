@@ -120,7 +120,6 @@ const getSingleMilestoneFromDB = async (id: string) => {
             select: {
               id: true,
               name: true,
-              image: true,
               description: true,
             },
           },
@@ -274,7 +273,6 @@ const assignServicesToMilestone = async (
             select: {
               id: true,
               name: true,
-              image: true,
               description: true,
             },
           },
@@ -293,6 +291,3 @@ export const MilestoneService = {
   assignEmployeesToMilestone,
   assignServicesToMilestone,
 };
-
-
-

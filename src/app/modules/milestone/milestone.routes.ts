@@ -45,6 +45,3 @@ router.post(
 );
 
 export const MilestoneRoutes = router;
-
-
-
