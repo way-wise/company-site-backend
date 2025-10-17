@@ -11,8 +11,17 @@ import { ITaskFilterParams } from "./task.interface";
 const createTaskIntoDB = async (
   data: Prisma.TaskCreateInput
 ): Promise<Task> => {
+  // Filter out undefined values to avoid foreign key constraint issues
+  const cleanedData = Object.fromEntries(
+    Object.entries(data).filter(
+      ([_, value]) => value !== undefined && value !== null && value !== ""
+    )
+  ) as Prisma.TaskCreateInput;
+
+  console.log("Cleaned data for DB:", cleanedData);
+
   return await prisma.task.create({
-    data,
+    data: cleanedData,
   });
 };
 

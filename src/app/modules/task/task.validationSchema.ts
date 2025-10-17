@@ -1,17 +1,28 @@
 import { z } from "zod";
 
 const create = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  milestoneId: z.string().min(1, "Milestone ID is required"),
-  creatorId: z.string().optional(),
-  status: z
-    .enum(["TODO", "IN_PROGRESS", "BLOCKED", "REVIEW", "DONE"])
-    .optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-  progress: z.number().min(0).max(100).optional(),
-  estimatedHours: z.number().positive().optional(),
-  spentHours: z.number().min(0).optional(),
+  body: z.object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional().or(z.literal("")),
+    milestoneId: z.string().min(1, "Milestone ID is required"),
+    creatorId: z
+      .string()
+      .optional()
+      .or(z.literal(""))
+      .transform((val) => (val === "" ? undefined : val)),
+    status: z
+      .enum(["TODO", "IN_PROGRESS", "BLOCKED", "REVIEW", "DONE"])
+      .optional(),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+    progress: z.number().min(0).max(100).optional(),
+    estimatedHours: z
+      .number()
+      .positive()
+      .optional()
+      .or(z.literal(0))
+      .transform((val) => (val === 0 ? undefined : val)),
+    spentHours: z.number().min(0).optional(),
+  }),
 });
 
 const update = z.object({
@@ -63,6 +74,3 @@ export const taskValidationSchemas = {
   updateProgress,
   updateTimeTracking,
 };
-
-
-

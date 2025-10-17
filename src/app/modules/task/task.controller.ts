@@ -8,6 +8,7 @@ import { validParams } from "./task.constants";
 import { TaskService } from "./task.service";
 
 const createTask = catchAsync(async (req: Request, res: Response) => {
+  console.log("Received task data:", req.body);
   const result = await TaskService.createTaskIntoDB(req.body);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -149,6 +150,3 @@ export const TaskController = {
   updateProgress,
   updateTimeTracking,
 };
-
-
-
