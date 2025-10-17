@@ -194,11 +194,24 @@ const updateProjectIntoDB = async (
 };
 
 const deleteProjectFromDB = async (id: string): Promise<Project> => {
-  await prisma.project.findUniqueOrThrow({
+  const project = await prisma.project.findUniqueOrThrow({
     where: {
       id,
     },
+    include: {
+      _count: {
+        select: {
+          milestones: true,
+        },
+      },
+    },
   });
+
+  if (project._count.milestones > 0) {
+    throw new Error(
+      "Cannot delete project with existing milestones. Delete milestones first."
+    );
+  }
 
   return await prisma.project.delete({
     where: {

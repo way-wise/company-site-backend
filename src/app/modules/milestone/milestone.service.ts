@@ -207,11 +207,24 @@ const updateMilestoneIntoDB = async (
 };
 
 const deleteMilestoneFromDB = async (id: string): Promise<Milestone> => {
-  await prisma.milestone.findUniqueOrThrow({
+  const milestone = await prisma.milestone.findUniqueOrThrow({
     where: {
       id,
     },
+    include: {
+      _count: {
+        select: {
+          Task: true,
+        },
+      },
+    },
   });
+
+  if (milestone._count.Task > 0) {
+    throw new Error(
+      "Cannot delete milestone with existing tasks. Delete tasks first."
+    );
+  }
 
   return await prisma.milestone.delete({
     where: {
