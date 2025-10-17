@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 import { DEFAULT_PERMISSIONS } from "../src/app/modules/permission/permission.constants";
 import { DEFAULT_ROLES } from "../src/app/modules/role/role.constants";
 
@@ -199,6 +200,55 @@ async function main() {
     console.log(
       `✅ Assigned ${employeePermissions.length} permissions to EMPLOYEE`
     );
+  }
+
+  // Create default SUPER_ADMIN user
+  console.log("👤 Creating default admin user...");
+  const adminEmail = "admin@gmail.com";
+  const adminPassword = "123456";
+
+  // Check if admin user already exists
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    // Create user
+    const adminUser = await prisma.user.create({
+      data: {
+        name: "Super Admin",
+        email: adminEmail,
+        password: hashedPassword,
+        status: "ACTIVE",
+        isPasswordChangeRequired: false,
+      },
+    });
+
+    // Create user profile
+    await prisma.userProfile.create({
+      data: {
+        userId: adminUser.id,
+        gender: "MALE",
+      },
+    });
+
+    // Assign SUPER_ADMIN role
+    if (superAdminRole) {
+      await prisma.userRoleAssignment.create({
+        data: {
+          userId: adminUser.id,
+          roleId: superAdminRole.id,
+        },
+      });
+    }
+
+    console.log("✅ Default admin user created successfully");
+    console.log(`📧 Email: ${adminEmail}`);
+    console.log(`🔑 Password: ${adminPassword}`);
+  } else {
+    console.log("ℹ️  Default admin user already exists");
   }
 
   console.log("✨ Database seeding completed!");
