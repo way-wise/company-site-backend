@@ -60,6 +60,33 @@ const getAllMilestonesFromDB = async (
           status: true,
         },
       },
+      employeeMilestones: {
+        include: {
+          userProfile: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      serviceMilestones: {
+        include: {
+          service: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            },
+          },
+        },
+      },
       _count: {
         select: {
           employeeMilestones: true,
@@ -236,6 +263,17 @@ const assignEmployeesToMilestone = async (
           },
         },
       },
+      serviceMilestones: {
+        include: {
+          service: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            },
+          },
+        },
+      },
     },
   });
 };
@@ -267,6 +305,22 @@ const assignServicesToMilestone = async (
   return await prisma.milestone.findUnique({
     where: { id: milestoneId },
     include: {
+      employeeMilestones: {
+        include: {
+          userProfile: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
       serviceMilestones: {
         include: {
           service: {
