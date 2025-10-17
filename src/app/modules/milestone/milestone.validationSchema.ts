@@ -1,12 +1,21 @@
 import { z } from "zod";
 
 const create = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().optional(),
-  status: z
-    .enum(["PENDING", "ONGOING", "COMPLETED", "REVIEW", "APPROVED", "REJECTED"])
-    .optional(),
-  projectId: z.string().min(1, "Project ID is required"),
+  body: z.object({
+    name: z.string().min(1, "Name is required"),
+    description: z.string().optional(),
+    status: z
+      .enum([
+        "PENDING",
+        "ONGOING",
+        "COMPLETED",
+        "REVIEW",
+        "APPROVED",
+        "REJECTED",
+      ])
+      .optional(),
+    projectId: z.string().min(1, "Project ID is required"),
+  }),
 });
 
 const update = z.object({
@@ -46,6 +55,3 @@ export const milestoneValidationSchemas = {
   assignEmployee,
   assignService,
 };
-
-
-
