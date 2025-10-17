@@ -7,6 +7,283 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Permission {
+  id              String           @id @default(ulid())
+  name            String           @unique
+  group           String
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id              String               @id @default(ulid())
+  name            String               @unique
+  description     String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRoleAssignment[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String     @id @default(ulid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRoleAssignment {
+  id         String   @id @default(ulid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model User {
+  id                       String               @id @default(ulid())
+  name                     String
+  email                    String               @unique
+  password                 String
+  status                   UserStatus           @default(ACTIVE)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  isPasswordChangeRequired Boolean              @default(true)
+  accessToken              String?
+  expiresAt                Int?
+  refreshToken             String?
+  userProfile              UserProfile?
+  roles                    UserRoleAssignment[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model UserProfile {
+  id                        String              @id @default(ulid())
+  userId                    String              @unique
+  profilePhoto              String?
+  contactNumber             String?
+  address                   String?
+  gender                    Gender?
+  isDeleted                 Boolean             @default(false)
+  bio                       String?
+  website                   String?
+  twitter                   String?
+  linkedIn                  String?
+  facebook                  String?
+  language                  String?
+  education                 String?
+  experience                String?
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+  blogs                     Blog[]
+  comments                  Comment[]
+  employeeMilestones        EmployeeMilestone[]
+  approvedLeaveApplications LeaveApplication[]  @relation("ApprovedBy")
+  leaveApplications         LeaveApplication[]
+  projects                  Project[]
+  taskAssignments           TaskAssignment[]
+  taskComments              TaskComment[]
+  tasks                     Task[]
+  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Project {
+  id            String        @id @default(ulid())
+  name          String
+  description   String?
+  status        ProjectStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userProfileId String
+  milestones    Milestone[]
+  userProfile   UserProfile   @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userProfileId])
+  @@map("projects")
+}
+
+model Milestone {
+  id                 String              @id @default(ulid())
+  name               String
+  description        String?
+  status             MilestoneStatus     @default(PENDING)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  projectId          String
+  employeeMilestones EmployeeMilestone[]
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  serviceMilestones  ServiceMilestone[]
+  Task               Task[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("milestones")
+}
+
+model Task {
+  id             String           @id @default(ulid())
+  title          String
+  description    String?
+  milestoneId    String
+  creatorId      String?
+  status         TaskStatus       @default(TODO)
+  priority       Priority         @default(MEDIUM)
+  progress       Int              @default(0)
+  estimatedHours Int?
+  spentHours     Int?             @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  assignments    TaskAssignment[]
+  comments       TaskComment[]
+  creator        UserProfile?     @relation(fields: [creatorId], references: [id])
+  milestone      Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([priority])
+  @@index([milestoneId, status])
+  @@index([creatorId])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id            String      @id @default(ulid())
+  taskId        String
+  assignedAt    DateTime    @default(now())
+  role          String?
+  createdAt     DateTime    @default(now())
+  userProfileId String
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userProfileId])
+  @@map("task_assignments")
+}
+
+model TaskComment {
+  id            String      @id @default(ulid())
+  taskId        String
+  content       String
+  createdAt     DateTime    @default(now())
+  userProfileId String
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@map("task_comments")
+}
+
+model EmployeeMilestone {
+  id            String                  @id @default(ulid())
+  milestoneId   String
+  status        EmployeeMilestoneStatus @default(ASSIGNED)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  userProfileId String
+  milestone     Milestone               @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile             @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, milestoneId])
+  @@map("employee_milestones")
+}
+
+model Service {
+  id                String             @id @default(ulid())
+  name              String
+  image             String?
+  description       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  serviceMilestones ServiceMilestone[]
+
+  @@map("services")
+}
+
+model ServiceMilestone {
+  id          String    @id @default(ulid())
+  serviceId   String
+  milestoneId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, milestoneId])
+  @@index([serviceId])
+  @@index([milestoneId])
+  @@map("service_milestones")
+}
+
+model Blog {
+  id            String      @id @default(ulid())
+  title         String
+  content       String
+  coverImage    String?
+  visibility    Visibility  @default(PUBLIC)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  comments      Comment[]
+
+  @@index([visibility])
+  @@map("blogs")
+}
+
+model Comment {
+  id            String      @id @default(ulid())
+  content       String
+  blogId        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userProfileId String
+  blog          Blog        @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@index([blogId])
+  @@index([userProfileId])
+  @@map("comments")
+}
+
+model LeaveApplication {
+  id            String       @id @default(ulid())
+  startDate     DateTime
+  endDate       DateTime
+  reason        String
+  status        LeaveStatus  @default(PENDING)
+  approvedBy    String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  userProfileId String
+  approver      UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  userProfile   UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@index([userProfileId])
+  @@index([status])
+  @@index([approvedBy])
+  @@map("leave_applications")
+}
+
 enum UserStatus {
   ACTIVE
   BLOCKED
@@ -65,297 +342,4 @@ enum Priority {
   MEDIUM
   HIGH
   CRITICAL
-}
-
-model Permission {
-  id          String   @id @default(ulid())
-  name        String   @unique
-  group       String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  rolePermissions RolePermission[]
-
-  @@map("permissions")
-}
-
-model Role {
-  id              String               @id @default(ulid())
-  name            String               @unique
-  description     String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  rolePermissions RolePermission[]
-  userRoles       UserRoleAssignment[]
-
-  @@map("roles")
-}
-
-model RolePermission {
-  id           String     @id @default(ulid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime   @default(now())
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@map("role_permissions")
-}
-
-model UserRoleAssignment {
-  id         String   @id @default(ulid())
-  userId     String
-  roleId     String
-  assignedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId])
-  @@map("user_roles")
-}
-
-model User {
-  id       String @id @default(ulid())
-  name     String
-  email    String @unique
-  password String
-
-  isPasswordChangeRequired Boolean    @default(true)
-  status                   UserStatus @default(ACTIVE)
-  refreshToken             String?
-  accessToken              String?
-  expiresAt                Int?
-  createdAt                DateTime   @default(now())
-  updatedAt                DateTime   @updatedAt
-
-  userProfile UserProfile?
-  roles       UserRoleAssignment[]
-
-  @@index([status])
-  @@map("users")
-}
-
-model UserProfile {
-  id            String   @id @default(ulid())
-  userId        String   @unique
-  profilePhoto  String?
-  contactNumber String?
-  address       String?
-  gender        Gender?
-  isDeleted     Boolean  @default(false)
-  bio           String?
-  website       String?
-  twitter       String?
-  linkedIn      String?
-  facebook      String?
-  language      String?
-  education     String?
-  experience    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blogs                     Blog[]
-  comments                  Comment[]
-  projects                  Project[]
-  employeeMilestones        EmployeeMilestone[]
-  leaveApplications         LeaveApplication[]
-  approvedLeaveApplications LeaveApplication[]  @relation("ApprovedBy")
-  tasks                     Task[]
-  taskAssignments           TaskAssignment[]
-  taskComments              TaskComment[]
-
-  @@map("user_profiles")
-}
-
-model Project {
-  id            String        @id @default(ulid())
-  name          String
-  description   String?
-  status        ProjectStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  userProfileId String
-
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  milestones  Milestone[]
-
-  @@index([status])
-  @@index([userProfileId])
-  @@map("projects")
-}
-
-model Milestone {
-  id          String          @id @default(ulid())
-  name        String
-  description String?
-  status      MilestoneStatus @default(PENDING)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  projectId   String
-
-  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  employeeMilestones EmployeeMilestone[]
-  serviceMilestones  ServiceMilestone[]
-  Task               Task[]
-
-  @@index([projectId])
-  @@index([status])
-  @@map("milestones")
-}
-
-model Task {
-  id             String     @id @default(ulid())
-  title          String
-  description    String?
-  milestoneId    String
-  creatorId      String? // who created the task (optional)
-  status         TaskStatus @default(TODO)
-  priority       Priority   @default(MEDIUM)
-  progress       Int        @default(0) // 0..100, denormalized for quick display
-  estimatedHours Int?
-  spentHours     Int?       @default(0)
-  startedAt      DateTime?
-  completedAt    DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  milestone Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  creator   UserProfile? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
-
-  assignments TaskAssignment[]
-  comments    TaskComment[]
-
-  @@index([status])
-  @@index([priority])
-  @@index([milestoneId, status])
-  @@index([creatorId])
-  @@map("tasks")
-}
-
-model TaskAssignment {
-  id         String   @id @default(ulid())
-  taskId     String
-  assignedAt DateTime @default(now())
-  role       String? // e.g., "owner", "reviewer", "implementer"
-  createdAt  DateTime @default(now())
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  userProfileId String
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@unique([taskId, userProfileId])
-  @@map("task_assignments")
-}
-
-model TaskComment {
-  id        String   @id @default(ulid())
-  taskId    String
-  content   String
-  createdAt DateTime @default(now())
-
-  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userProfileId String
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@map("task_comments")
-}
-
-model EmployeeMilestone {
-  id            String                  @id @default(ulid())
-  userProfileId String
-  milestoneId   String
-  status        EmployeeMilestoneStatus @default(ASSIGNED)
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  milestone   Milestone   @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-
-  @@unique([userProfileId, milestoneId])
-  @@map("employee_milestones")
-}
-
-model Service {
-  id                String             @id @default(ulid())
-  name              String
-  image             String?
-  description       String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  serviceMilestones ServiceMilestone[]
-
-  @@map("services")
-}
-
-model ServiceMilestone {
-  id          String    @id @default(ulid())
-  serviceId   String
-  milestoneId String
-  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@unique([serviceId, milestoneId])
-  @@index([serviceId])
-  @@index([milestoneId])
-  @@map("service_milestones")
-}
-
-model Blog {
-  id            String     @id @default(ulid())
-  title         String
-  content       String
-  coverImage    String?
-  visibility    Visibility @default(PUBLIC)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  userProfileId String
-
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  comments    Comment[]
-
-  @@index([visibility])
-  @@map("blogs")
-}
-
-model Comment {
-  id            String   @id @default(ulid())
-  content       String
-  userProfileId String
-  blogId        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  blog        Blog        @relation(fields: [blogId], references: [id], onDelete: Cascade)
-
-  @@index([blogId])
-  @@index([userProfileId])
-  @@map("comments")
-}
-
-model LeaveApplication {
-  id            String      @id @default(ulid())
-  userProfileId String
-  startDate     DateTime
-  endDate       DateTime
-  reason        String
-  status        LeaveStatus @default(PENDING)
-  approvedBy    String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  userProfile UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  approver    UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
-
-  @@index([userProfileId])
-  @@index([status])
-  @@index([approvedBy])
-  @@map("leave_applications")
 }
