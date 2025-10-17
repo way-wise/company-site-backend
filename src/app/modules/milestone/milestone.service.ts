@@ -87,6 +87,38 @@ const getAllMilestonesFromDB = async (
           },
         },
       },
+      Task: {
+        include: {
+          creator: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          assignments: {
+            include: {
+              userProfile: {
+                select: {
+                  id: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       _count: {
         select: {
           employeeMilestones: true,
