@@ -20,7 +20,7 @@ const getAllServiceFromDB = async (
   queryParams: IServiceFilterParams,
   paginationAndSortingQueryParams: IPaginationParams & ISortingParams
 ) => {
-  const { q, ...otherQueryParams } = queryParams;
+  const { search, ...otherQueryParams } = queryParams;
 
   const { limit, skip, page, sortBy, sortOrder } =
     generatePaginateAndSortOptions({
@@ -30,9 +30,9 @@ const getAllServiceFromDB = async (
   const conditions: Prisma.ServiceWhereInput[] = [];
 
   //@ searching
-  if (q) {
+  if (search) {
     const searchConditions = searchableFields.map((field) => ({
-      [field]: { contains: q, mode: "insensitive" },
+      [field]: { contains: search, mode: "insensitive" },
     }));
     conditions.push({ OR: searchConditions });
   }

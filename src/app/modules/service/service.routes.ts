@@ -9,7 +9,7 @@ const router = express.Router();
 router.post(
   "/",
   // roleGuard("ADMIN", "SUPER_ADMIN"),
-  // validateRequest(serviceValidationSchemas.create),
+  validateRequest(serviceValidationSchemas.create),
   ServiceController.createService
 );
 
@@ -17,7 +17,7 @@ router.get("/", ServiceController.getAllService);
 
 router.get("/:id", ServiceController.getSingleService);
 
-router.patch(
+router.put(
   "/:id",
   roleGuard("ADMIN", "SUPER_ADMIN"),
   validateRequest(serviceValidationSchemas.update),

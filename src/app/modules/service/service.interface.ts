@@ -1,4 +1,4 @@
 export type IServiceFilterParams = {
-  q?: string | undefined;
+  search?: string | undefined;
   name?: string | undefined;
 };
