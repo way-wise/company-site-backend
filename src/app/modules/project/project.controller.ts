@@ -80,6 +80,3 @@ export const ProjectController = {
   updateProject,
   deleteProject,
 };
-
-
-

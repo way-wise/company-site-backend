@@ -9,6 +9,8 @@ export const PERMISSION_GROUPS = {
   LEAVE_MANAGEMENT: "leave_management",
   BLOG_MANAGEMENT: "blog_management",
   COMMENT_MANAGEMENT: "comment_management",
+  MILESRONE_MANAGEMENT: "milestone_management",
+  TASK_MANAGEMENT: "task_management",
 } as const;
 
 export const DEFAULT_PERMISSIONS = [
@@ -206,5 +208,87 @@ export const DEFAULT_PERMISSIONS = [
     name: "delete_comment",
     group: PERMISSION_GROUPS.COMMENT_MANAGEMENT,
     description: "Delete comments",
+  },
+  // milestone  management
+  {
+    name: "create_milestone",
+    group: PERMISSION_GROUPS.MILESRONE_MANAGEMENT,
+    description: "Create new milestones",
+  },
+  {
+    name: "read_milestone",
+    group: PERMISSION_GROUPS.MILESRONE_MANAGEMENT,
+    description: "View milestone details",
+  },
+  {
+    name: "update_milestone",
+    group: PERMISSION_GROUPS.MILESRONE_MANAGEMENT,
+    description: "Update milestone information",
+  },
+  {
+    name: "delete_milestone",
+    group: PERMISSION_GROUPS.MILESRONE_MANAGEMENT,
+    description: "Delete milestones",
+  },
+  // task management
+  {
+    name: "create_task",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Create new tasks",
+  },
+  {
+    name: "read_task",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "View task details",
+  },
+  {
+    name: "update_task",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Update task information",
+  },
+  {
+    name: "delete_task",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Delete tasks",
+  },
+  {
+    name: "assign_task",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Assign tasks to users",
+  },
+  {
+    name: "add_comment",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Add comments to tasks",
+  },
+  {
+    name: "update_comment",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Update comments",
+  },
+  {
+    name: "delete_comment",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Delete comments",
+  },
+  {
+    name: "update_progress",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Update task progress",
+  },
+  {
+    name: "update_time_tracking",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Update task time tracking",
+  },
+  {
+    name: "delete_time_tracking",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Delete task time tracking",
+  },
+  {
+    name: "get_task_stats",
+    group: PERMISSION_GROUPS.TASK_MANAGEMENT,
+    description: "Get task statistics",
   },
 ];

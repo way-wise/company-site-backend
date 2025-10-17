@@ -31,6 +31,3 @@ router.delete(
 );
 
 export const ProjectRoutes = router;
-
-
-

@@ -96,6 +96,7 @@ const transformUserData = (user: any) => ({
   contactNumber: user.userProfile?.contactNumber || "",
   gender: user.userProfile?.gender || "MALE",
   image: user.userProfile?.profilePhoto,
+  userProfile: user.userProfile || null,
 });
 
 const getAllUsers = async (
@@ -177,6 +178,7 @@ const getSingleUserFromDB = async (id: string) => {
     contactNumber: user.userProfile?.contactNumber || "",
     gender: user.userProfile?.gender || "MALE",
     image: user.userProfile?.profilePhoto,
+    userProfile: user.userProfile || null,
     emailVerified: false, // Add this field if needed
   };
 };
@@ -356,6 +358,7 @@ const updateUser = async (userId: string, userData: any) => {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     image: user.userProfile?.profilePhoto,
+    userProfile: user.userProfile || null,
   };
 
   return result;
@@ -387,6 +390,7 @@ const banUser = async (userId: string, banReason: string) => {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     image: user.userProfile?.profilePhoto,
+    userProfile: user.userProfile || null,
   };
 };
 
@@ -416,6 +420,7 @@ const unbanUser = async (userId: string) => {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     image: user.userProfile?.profilePhoto,
+    userProfile: user.userProfile || null,
   };
 };
 

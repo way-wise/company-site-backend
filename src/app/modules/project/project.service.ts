@@ -8,11 +8,28 @@ import {
 import { searchableFields } from "./project.constants";
 import { IProjectFilterParams } from "./project.interface";
 
-const createProjectIntoDB = async (
-  data: Prisma.ProjectCreateInput
-): Promise<Project> => {
+const createProjectIntoDB = async (data: {
+  name: string;
+  description?: string;
+  status?: string;
+  userProfileId: string;
+}): Promise<Project> => {
+  // Validate that userProfileId exists
+  const userProfile = await prisma.userProfile.findUnique({
+    where: { id: data.userProfileId },
+  });
+
+  if (!userProfile) {
+    throw new Error(`UserProfile with id ${data.userProfileId} not found`);
+  }
+
   return await prisma.project.create({
-    data,
+    data: {
+      name: data.name,
+      description: data.description,
+      status: data.status as any,
+      userProfileId: data.userProfileId,
+    },
   });
 };
 
@@ -138,7 +155,7 @@ const getSingleProjectFromDB = async (id: string) => {
                 select: {
                   id: true,
                   name: true,
-                  image: true,
+                  description: true,
                 },
               },
             },
@@ -197,6 +214,3 @@ export const ProjectService = {
   updateProjectIntoDB,
   deleteProjectFromDB,
 };
-
-
-
