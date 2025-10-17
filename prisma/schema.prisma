@@ -141,24 +141,24 @@ model Milestone {
 }
 
 model Task {
-  id             String           @id @default(ulid())
+  id             String     @id @default(ulid())
   title          String
   description    String?
   milestoneId    String
   creatorId      String?
-  status         TaskStatus       @default(TODO)
-  priority       Priority         @default(MEDIUM)
-  progress       Int              @default(0)
+  status         TaskStatus @default(TODO)
+  priority       Priority   @default(MEDIUM)
+  progress       Int        @default(0)
   estimatedHours Int?
-  spentHours     Int?             @default(0)
-  startedAt      DateTime?
-  completedAt    DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  assignments    TaskAssignment[]
-  comments       TaskComment[]
-  creator        UserProfile?     @relation(fields: [creatorId], references: [id])
-  milestone      Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  assignments TaskAssignment[]
+  comments    TaskComment[]
+  creator     UserProfile?     @relation(fields: [creatorId], references: [id])
+  milestone   Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([priority])

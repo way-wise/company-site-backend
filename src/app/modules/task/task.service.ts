@@ -333,6 +333,3 @@ export const TaskService = {
   updateTaskProgress,
   updateTaskTimeTracking,
 };
-
-
-
