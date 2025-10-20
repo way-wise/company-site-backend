@@ -773,56 +773,61 @@
   resolved "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
 
-"@prisma/client@^6.16.2":
-  version "6.16.2"
-  resolved "https://registry.npmjs.org/@prisma/client/-/client-6.16.2.tgz"
-  integrity sha512-E00PxBcalMfYO/TWnXobBVUai6eW/g5OsifWQsQDzJYm7yaY+IRLo7ZLsaefi0QkTpxfuhFcQ/w180i6kX3iJw==
+"@prisma/client@^6.17.1":
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/@prisma/client/-/client-6.17.1.tgz#308f3bf7d050316578aa7fd6cd9deca671561f04"
+  integrity sha512-zL58jbLzYamjnNnmNA51IOZdbk5ci03KviXCuB0Tydc9btH2kDWsi1pQm2VecviRTM7jGia0OPPkgpGnT3nKvw==
 
-"@prisma/config@6.16.3":
-  version "6.16.3"
-  resolved "https://registry.npmjs.org/@prisma/config/-/config-6.16.3.tgz"
-  integrity sha512-VlsLnG4oOuKGGMToEeVaRhoTBZu5H3q51jTQXb/diRags3WV0+BQK5MolJTtP6G7COlzoXmWeS11rNBtvg+qFQ==
+"@prisma/config@6.17.1":
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/@prisma/config/-/config-6.17.1.tgz#ac01e7006fb56117a77e0314054f6dcdf42531c0"
+  integrity sha512-fs8wY6DsvOCzuiyWVckrVs1LOcbY4LZNz8ki4uUIQ28jCCzojTGqdLhN2Jl5lDnC1yI8/gNIKpsWDM8pLhOdwA==
   dependencies:
     c12 "3.1.0"
     deepmerge-ts "7.1.5"
     effect "3.16.12"
     empathic "2.0.0"
 
-"@prisma/debug@6.16.3":
-  version "6.16.3"
-  resolved "https://registry.npmjs.org/@prisma/debug/-/debug-6.16.3.tgz"
-  integrity sha512-89DdqWtdKd7qoc9/qJCKLTazj3W3zPEiz0hc7HfZdpjzm21c7orOUB5oHWJsG+4KbV4cWU5pefq3CuDVYF9vgA==
+"@prisma/debug@6.17.1":
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/@prisma/debug/-/debug-6.17.1.tgz#b1c0b2787e1e04f08cfc7b39cee02a81c4897ea8"
+  integrity sha512-Vf7Tt5Wh9XcndpbmeotuqOMLWPTjEKCsgojxXP2oxE1/xYe7PtnP76hsouG9vis6fctX+TxgmwxTuYi/+xc7dQ==
 
-"@prisma/engines-version@6.16.1-1.bb420e667c1820a8c05a38023385f6cc7ef8e83a":
-  version "6.16.1-1.bb420e667c1820a8c05a38023385f6cc7ef8e83a"
-  resolved "https://registry.npmjs.org/@prisma/engines-version/-/engines-version-6.16.1-1.bb420e667c1820a8c05a38023385f6cc7ef8e83a.tgz"
-  integrity sha512-fftRmosBex48Ph1v2ll1FrPpirwtPZpNkE5CDCY1Lw2SD2ctyrLlVlHiuxDAAlALwWBOkPbAll4+EaqdGuMhJw==
+"@prisma/engines-version@6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac":
+  version "6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac"
+  resolved "https://registry.yarnpkg.com/@prisma/engines-version/-/engines-version-6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac.tgz#18a7f842cdb5ef57b1c5ffc74d177df1e0be3212"
+  integrity sha512-17140E3huOuD9lMdJ9+SF/juOf3WR3sTJMVyyenzqUPbuH+89nPhSWcrY+Mf7tmSs6HvaO+7S+HkELinn6bhdg==
 
-"@prisma/engines@6.16.3":
-  version "6.16.3"
-  resolved "https://registry.npmjs.org/@prisma/engines/-/engines-6.16.3.tgz"
-  integrity sha512-b+Rl4nzQDcoqe6RIpSHv8f5lLnwdDGvXhHjGDiokObguAAv/O1KaX1Oc69mBW/GFWKQpCkOraobLjU6s1h8HGg==
+"@prisma/engines@6.17.1":
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/@prisma/engines/-/engines-6.17.1.tgz#65b6f87773390505af3aa782891ae07a82e95d9c"
+  integrity sha512-D95Ik3GYZkqZ8lSR4EyFOJ/tR33FcYRP8kK61o+WMsyD10UfJwd7+YielflHfKwiGodcqKqoraWw8ElAgMDbPw==
   dependencies:
-    "@prisma/debug" "6.16.3"
-    "@prisma/engines-version" "6.16.1-1.bb420e667c1820a8c05a38023385f6cc7ef8e83a"
-    "@prisma/fetch-engine" "6.16.3"
-    "@prisma/get-platform" "6.16.3"
+    "@prisma/debug" "6.17.1"
+    "@prisma/engines-version" "6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac"
+    "@prisma/fetch-engine" "6.17.1"
+    "@prisma/get-platform" "6.17.1"
 
-"@prisma/fetch-engine@6.16.3":
-  version "6.16.3"
-  resolved "https://registry.npmjs.org/@prisma/fetch-engine/-/fetch-engine-6.16.3.tgz"
-  integrity sha512-bUoRIkVaI+CCaVGrSfcKev0/Mk4ateubqWqGZvQ9uCqFv2ENwWIR3OeNuGin96nZn5+SkebcD7RGgKr/+mJelw==
-  dependencies:
-    "@prisma/debug" "6.16.3"
-    "@prisma/engines-version" "6.16.1-1.bb420e667c1820a8c05a38023385f6cc7ef8e83a"
-    "@prisma/get-platform" "6.16.3"
+"@prisma/extension-accelerate@^2.0.2":
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/@prisma/extension-accelerate/-/extension-accelerate-2.0.2.tgz#2a8afac940413fb814b50ce9015dac049a783503"
+  integrity sha512-yZK6/k7uOEFpEsKoZezQS1CKDboPtBCQ0NyI70e1Un8tDiRgg80iWGyjsJmRpps2ZIut3MroHP+dyR3wVKh8lA==
 
-"@prisma/get-platform@6.16.3":
-  version "6.16.3"
-  resolved "https://registry.npmjs.org/@prisma/get-platform/-/get-platform-6.16.3.tgz"
-  integrity sha512-X1LxiFXinJ4iQehrodGp0f66Dv6cDL0GbRlcCoLtSu6f4Wi+hgo7eND/afIs5029GQLgNWKZ46vn8hjyXTsHLA==
+"@prisma/fetch-engine@6.17.1":
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/@prisma/fetch-engine/-/fetch-engine-6.17.1.tgz#e2c77ab58aee077c3eb8e86f63ff98068d173b69"
+  integrity sha512-AYZiHOs184qkDMiTeshyJCtyL4yERkjfTkJiSJdYuSfc24m94lTNL5+GFinZ6vVz+ktX4NJzHKn1zIFzGTWrWg==
   dependencies:
-    "@prisma/debug" "6.16.3"
+    "@prisma/debug" "6.17.1"
+    "@prisma/engines-version" "6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac"
+    "@prisma/get-platform" "6.17.1"
+
+"@prisma/get-platform@6.17.1":
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/@prisma/get-platform/-/get-platform-6.17.1.tgz#376669bfa67adf78eb0d3bdc1b9fe921af32ea19"
+  integrity sha512-AKEn6fsfz0r482S5KRDFlIGEaq9wLNcgalD1adL+fPcFFblIKs1sD81kY/utrHdqKuVC6E1XSRpegDK3ZLL4Qg==
+  dependencies:
+    "@prisma/debug" "6.17.1"
 
 "@rolldown/binding-android-arm64@1.0.0-beta.35":
   version "1.0.0-beta.35"
@@ -3510,13 +3515,13 @@ pretty-ms@7.0.1:
   dependencies:
     parse-ms "^2.1.0"
 
-prisma@^6.16.3:
-  version "6.16.3"
-  resolved "https://registry.npmjs.org/prisma/-/prisma-6.16.3.tgz"
-  integrity sha512-4tJq3KB9WRshH5+QmzOLV54YMkNlKOtLKaSdvraI5kC/axF47HuOw6zDM8xrxJ6s9o2WodY654On4XKkrobQdQ==
+prisma@^6.17.1:
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/prisma/-/prisma-6.17.1.tgz#e3ed9373f84ddde708718053e73c8e18c2110197"
+  integrity sha512-ac6h0sM1Tg3zu8NInY+qhP/S9KhENVaw9n1BrGKQVFu05JT5yT5Qqqmb8tMRIE3ZXvVj4xcRA5yfrsy4X7Yy5g==
   dependencies:
-    "@prisma/config" "6.16.3"
-    "@prisma/engines" "6.16.3"
+    "@prisma/config" "6.17.1"
+    "@prisma/engines" "6.17.1"
 
 process@^0.11.10:
   version "0.11.10"

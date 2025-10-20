@@ -320,14 +320,17 @@ const updateTaskProgress = async (taskId: string, progress: number) => {
   });
 };
 
-const updateTaskTimeTracking = async (taskId: string, spentHours: number) => {
+const updateTaskTimeTracking = async (
+  taskId: string,
+  estimatedHours: number
+) => {
   await prisma.task.findUniqueOrThrow({
     where: { id: taskId },
   });
 
   return await prisma.task.update({
     where: { id: taskId },
-    data: { spentHours },
+    data: { estimatedHours },
   });
 };
 

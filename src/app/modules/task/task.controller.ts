@@ -104,6 +104,7 @@ const addComment = catchAsync(async (req: Request, res: Response) => {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
       message: "User profile not found",
+      data: null,
     });
   }
 
@@ -131,9 +132,9 @@ const updateProgress = catchAsync(async (req: Request, res: Response) => {
 
 const updateTimeTracking = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { spentHours } = req.body;
+  const { estimatedHours } = req.body;
 
-  const result = await TaskService.updateTaskTimeTracking(id, spentHours);
+  const result = await TaskService.updateTaskTimeTracking(id, estimatedHours);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

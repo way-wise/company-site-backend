@@ -143,7 +143,7 @@ const getAllUsers = async (
 };
 
 const getSingleUserFromDB = async (id: string) => {
-  const user = await prisma.user.findUniqueOrThrow({
+  const user = (await prisma.user.findUniqueOrThrow({
     where: {
       id,
       OR: [{ userProfile: { isDeleted: false } }, { userProfile: null }],
@@ -164,14 +164,19 @@ const getSingleUserFromDB = async (id: string) => {
         },
       },
     },
-  });
+  })) as Prisma.UserGetPayload<{
+    include: {
+      userProfile: true;
+      roles: { include: { role: true } };
+    };
+  }>;
 
   // Transform to match frontend expectations
   return {
     id: user.id,
     name: user.name,
     email: user.email,
-    roles: user.roles.map((ur) => ur.role),
+    roles: user.roles.map((ur: any) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -353,7 +358,7 @@ const updateUser = async (userId: string, userData: any) => {
     name: user.name,
     contactNumber: user.userProfile?.contactNumber || "",
     gender: user.userProfile?.gender || "MALE",
-    roles: user.roles.map((ur) => ur.role),
+    roles: user.roles.map((ur: any) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -385,7 +390,7 @@ const banUser = async (userId: string, banReason: string) => {
     name: user.name,
     contactNumber: user.userProfile?.contactNumber || "",
     gender: user.userProfile?.gender || "MALE",
-    roles: user.roles.map((ur) => ur.role),
+    roles: user.roles.map((ur: any) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -415,7 +420,7 @@ const unbanUser = async (userId: string) => {
     name: user.name,
     contactNumber: user.userProfile?.contactNumber || "",
     gender: user.userProfile?.gender || "MALE",
-    roles: user.roles.map((ur) => ur.role),
+    roles: user.roles.map((ur: any) => ur.role),
     isActive: user.status === "ACTIVE",
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
