@@ -34,6 +34,7 @@ const authGuard = () => {
       const user = await prisma.user.findUniqueOrThrow({
         where: { email: verifiedUser.email },
         include: {
+          userProfile: true,
           roles: {
             include: {
               role: {
@@ -55,6 +56,7 @@ const authGuard = () => {
         ...verifiedUser,
         id: user.id,
         roles: user.roles.map((ur) => ur.role),
+        userProfile: user.userProfile,
         permissions: await permissionHelper.getUserPermissions(user.id),
       };
 

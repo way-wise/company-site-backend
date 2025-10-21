@@ -102,6 +102,11 @@ export const DEFAULT_PERMISSIONS = [
     description: "View project details",
   },
   {
+    name: "view_all_projects",
+    group: PERMISSION_GROUPS.PROJECT_MANAGEMENT,
+    description: "View all projects in the system",
+  },
+  {
     name: "update_project",
     group: PERMISSION_GROUPS.PROJECT_MANAGEMENT,
     description: "Update project information",

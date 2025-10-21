@@ -73,6 +73,7 @@ async function main() {
       // Project Management
       "create_project",
       "read_project",
+      "view_all_projects",
       "update_project",
       "delete_project",
       "manage_milestones",

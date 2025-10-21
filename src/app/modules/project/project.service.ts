@@ -35,7 +35,8 @@ const createProjectIntoDB = async (data: {
 
 const getAllProjectsFromDB = async (
   queryParams: IProjectFilterParams,
-  paginationAndSortingQueryParams: IPaginationParams & ISortingParams
+  paginationAndSortingQueryParams: IPaginationParams & ISortingParams,
+  user?: any
 ) => {
   const { q, ...otherQueryParams } = queryParams;
 
@@ -60,6 +61,58 @@ const getAllProjectsFromDB = async (
       [key]: (otherQueryParams as any)[key],
     }));
     conditions.push(...filterData);
+  }
+
+  //@ permission-based filtering
+  if (user) {
+    const { permissions, userProfile } = user;
+
+    console.log("🔍 Project filtering debug:", {
+      userId: user.id,
+      permissions: permissions,
+      userProfile: userProfile ? { id: userProfile.id } : null,
+      hasViewAllProjects: permissions.includes("view_all_projects"),
+      hasReadProject: permissions.includes("read_project"),
+    });
+
+    // Check if user has permission to view all projects
+    const canViewAllProjects = permissions.includes("view_all_projects");
+
+    if (!canViewAllProjects) {
+      const canViewProjects = permissions.includes("read_project");
+
+      if (canViewProjects && userProfile) {
+        // User sees: own projects OR assigned projects
+        conditions.push({
+          OR: [
+            { userProfileId: userProfile.id }, // Own projects
+            {
+              milestones: {
+                some: {
+                  employeeMilestones: {
+                    some: { userProfileId: userProfile.id },
+                  },
+                },
+              },
+            }, // Assigned projects
+          ],
+        });
+        console.log(
+          "✅ Applied filtering for user with read_project permission"
+        );
+      } else {
+        // No permission to view projects - return empty
+        conditions.push({ id: "no-access" }); // Will return no results
+        console.log("❌ No permission to view projects - returning empty");
+      }
+    } else {
+      console.log(
+        "✅ User has view_all_projects permission - no filtering applied"
+      );
+    }
+    // If canViewAllProjects: No additional filter, see all projects
+  } else {
+    console.log("⚠️ No user context provided to project service");
   }
 
   const result = await prisma.project.findMany({

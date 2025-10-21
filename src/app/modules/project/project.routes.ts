@@ -1,4 +1,5 @@
 import express from "express";
+import authGuard from "../../middlewares/authGuard";
 import roleGuard from "../../middlewares/roleGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { ProjectController } from "./project.controller";
@@ -13,9 +14,9 @@ router.post(
   ProjectController.createProject
 );
 
-router.get("/", ProjectController.getAllProjects);
+router.get("/", authGuard(), ProjectController.getAllProjects);
 
-router.get("/:id", ProjectController.getSingleProject);
+router.get("/:id", authGuard(), ProjectController.getSingleProject);
 
 router.patch(
   "/:id",

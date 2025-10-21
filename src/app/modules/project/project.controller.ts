@@ -17,25 +17,42 @@ const createProject = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getAllProjects = catchAsync(async (req: Request, res: Response) => {
-  const validQueryParams = filterValidQueryParams(req.query, validParams);
-  const paginationAndSortingQueryParams = filterValidQueryParams(
-    req.query,
-    paginationAndSortingParams
-  );
+const getAllProjects = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    console.log(
+      "🎯 Project controller - req.user:",
+      req.user
+        ? {
+            id: req.user.id,
+            email: req.user.email,
+            permissions: req.user.permissions,
+            userProfile: req.user.userProfile
+              ? { id: req.user.userProfile.id }
+              : null,
+          }
+        : "No user context"
+    );
 
-  const result = await ProjectService.getAllProjectsFromDB(
-    validQueryParams,
-    paginationAndSortingQueryParams
-  );
+    const validQueryParams = filterValidQueryParams(req.query, validParams);
+    const paginationAndSortingQueryParams = filterValidQueryParams(
+      req.query,
+      paginationAndSortingParams
+    );
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Projects fetched successfully!",
-    data: result,
-  });
-});
+    const result = await ProjectService.getAllProjectsFromDB(
+      validQueryParams,
+      paginationAndSortingQueryParams,
+      req.user
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Projects fetched successfully!",
+      data: result,
+    });
+  }
+);
 
 const getSingleProject = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
