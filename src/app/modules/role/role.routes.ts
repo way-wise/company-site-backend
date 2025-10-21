@@ -6,7 +6,6 @@ import { roleValidationSchema } from "./role.validationSchema";
 
 const router = express.Router();
 
-
 // Get user roles (MUST come before /:id)
 router.get(
   "/user/:userId/roles",
@@ -19,7 +18,6 @@ router.get(
 router.get(
   "/user/:userId/permissions",
   authGuard(),
-  permissionGuard("read_permission"),
   roleController.getUserPermissions
 );
 

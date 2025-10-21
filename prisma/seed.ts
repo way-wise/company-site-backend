@@ -132,8 +132,11 @@ async function main() {
 
   if (clientRole) {
     const clientPermissionNames = [
-      "read_project",
+      "read_user",
+      "create_user",
       "read_service",
+      "create_service",
+      "read_project",
       "create_comment",
       "read_comment",
       "update_comment",

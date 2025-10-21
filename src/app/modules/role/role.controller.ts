@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
+import { permissionHelper } from "../../../helpers/permissionHelper";
 import { paginationAndSortingParams } from "../../../shared/appConstants";
 import catchAsync from "../../../shared/catchAsync";
 import { filterValidQueryParams } from "../../../shared/filterValidQueryParams";
@@ -155,8 +156,26 @@ const getUserRoles = catchAsync(
 );
 
 const getUserPermissions = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request & { user?: any }, res: Response, next: NextFunction) => {
     const { userId } = req.params;
+    const requestingUserId = req.user?.id;
+
+    // Users can only view their own permissions unless they have read_permission
+    if (userId !== requestingUserId) {
+      const hasPermission = await permissionHelper.hasPermission(
+        requestingUserId,
+        "read_permission"
+      );
+      if (!hasPermission) {
+        return sendResponse(res, {
+          statusCode: httpStatus.FORBIDDEN,
+          success: false,
+          message: "You can only view your own permissions",
+          data: null,
+        });
+      }
+    }
+
     const result = await roleService.getUserPermissions(userId);
 
     sendResponse(res, {
