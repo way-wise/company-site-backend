@@ -75,13 +75,13 @@ model User {
 }
 
 model UserProfile {
-  id                        String              @id @default(ulid())
-  userId                    String              @unique
+  id                        String                    @id @default(ulid())
+  userId                    String                    @unique
   profilePhoto              String?
   contactNumber             String?
   address                   String?
   gender                    Gender?
-  isDeleted                 Boolean             @default(false)
+  isDeleted                 Boolean                   @default(false)
   bio                       String?
   website                   String?
   twitter                   String?
@@ -90,32 +90,35 @@ model UserProfile {
   language                  String?
   education                 String?
   experience                String?
-  createdAt                 DateTime            @default(now())
-  updatedAt                 DateTime            @updatedAt
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
   blogs                     Blog[]
   comments                  Comment[]
   employeeMilestones        EmployeeMilestone[]
-  approvedLeaveApplications LeaveApplication[]  @relation("ApprovedBy")
+  approvedLeaveApplications LeaveApplication[]        @relation("ApprovedBy")
   leaveApplications         LeaveApplication[]
   projects                  Project[]
   taskAssignments           TaskAssignment[]
   taskComments              TaskComment[]
   tasks                     Task[]
-  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationParticipants  ConversationParticipant[]
+  messages                  Message[]
+  user                      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
 
 model Project {
-  id            String        @id @default(ulid())
+  id            String         @id @default(ulid())
   name          String
   description   String?
-  status        ProjectStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  status        ProjectStatus  @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   userProfileId String
   milestones    Milestone[]
-  userProfile   UserProfile   @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([userProfileId])
@@ -341,4 +344,61 @@ enum Priority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+model Conversation {
+  id           String                    @id @default(ulid())
+  name         String?
+  type         ConversationType
+  projectId    String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+  project      Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([projectId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(ulid())
+  conversationId String
+  userProfileId  String
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime     @default(now())
+  isAdmin        Boolean      @default(false)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userProfile    UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userProfileId])
+  @@index([userProfileId])
+  @@index([conversationId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(ulid())
+  conversationId String
+  senderId       String
+  content        String
+  attachments    Json?
+  isEdited       Boolean      @default(false)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         UserProfile  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+  PROJECT
 }

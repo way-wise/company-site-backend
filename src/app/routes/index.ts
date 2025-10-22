@@ -1,6 +1,7 @@
 import express from "express";
 import { AdminRoutes } from "../modules/admin/admin.routes";
 import { authRoutes } from "../modules/auth/auth.routes";
+import { ChatRoutes } from "../modules/chat/chat.routes";
 import { leaveRoutes } from "../modules/leave/leave.routes";
 import { MilestoneRoutes } from "../modules/milestone/milestone.routes";
 import { permissionRoutes } from "../modules/permission/permission.routes";
@@ -24,6 +25,10 @@ const moduleRoutes = [
   {
     path: "/auth",
     route: authRoutes,
+  },
+  {
+    path: "/chat",
+    route: ChatRoutes,
   },
   {
     path: "/service",
