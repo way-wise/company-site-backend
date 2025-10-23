@@ -161,7 +161,7 @@ const addParticipants = catchAsync(
 
 const removeParticipant = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
-    const { id, userId } = req.params;
+    const { id, userProfileId } = req.params;
     const currentUserProfileId = req.user?.userProfile?.id;
 
     if (!currentUserProfileId) {
@@ -175,7 +175,7 @@ const removeParticipant = catchAsync(
 
     const result = await ChatService.removeParticipantFromConversation(
       id,
-      userId,
+      userProfileId,
       currentUserProfileId
     );
 

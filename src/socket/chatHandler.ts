@@ -2,31 +2,31 @@ import { Server as SocketIOServer } from "socket.io";
 import prisma from "../shared/prismaClient";
 import { AuthenticatedSocket } from "./index";
 
-// Socket event interfaces
-interface SendMessageData {
+// Socket event interfaces - exported for type safety
+export interface SendMessageData {
   conversationId: string;
   content: string;
-  attachments?: any[];
+  attachments?: unknown[];
 }
 
-interface EditMessageData {
+export interface EditMessageData {
   messageId: string;
   content: string;
 }
 
-interface DeleteMessageData {
+export interface DeleteMessageData {
   messageId: string;
 }
 
-interface TypingData {
+export interface TypingData {
   conversationId: string;
 }
 
-interface ReadReceiptData {
+export interface ReadReceiptData {
   conversationId: string;
 }
 
-interface JoinConversationData {
+export interface JoinConversationData {
   conversationId: string;
 }
 

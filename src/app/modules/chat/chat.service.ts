@@ -519,7 +519,7 @@ const editMessageInDB = async (
     );
   }
 
-  return await prisma.message.update({
+  const updatedMessage = await prisma.message.update({
     where: { id: messageId },
     data: {
       content,
@@ -541,6 +541,11 @@ const editMessageInDB = async (
       },
     },
   });
+
+  return {
+    ...updatedMessage,
+    conversationId: message.conversationId,
+  };
 };
 
 const deleteMessageFromDB = async (
@@ -562,13 +567,18 @@ const deleteMessageFromDB = async (
     );
   }
 
-  return await prisma.message.update({
+  const deletedMessage = await prisma.message.update({
     where: { id: messageId },
     data: {
       isDeleted: true,
       content: "This message has been deleted",
     },
   });
+
+  return {
+    ...deletedMessage,
+    conversationId: message.conversationId,
+  };
 };
 
 export const ChatService = {

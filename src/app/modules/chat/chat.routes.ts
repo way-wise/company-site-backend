@@ -32,7 +32,7 @@ router.post(
 );
 
 router.delete(
-  "/conversations/:id/participants/:userId",
+  "/conversations/:id/participants/:userProfileId",
   ChatController.removeParticipant
 );
 
