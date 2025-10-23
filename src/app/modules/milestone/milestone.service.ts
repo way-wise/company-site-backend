@@ -406,6 +406,58 @@ const assignEmployeesToMilestone = async (
     }
   }
 
+  // Find employees removed from this milestone
+  const removedEmployeeIds = Array.from(existingEmployeeIds).filter(
+    (id) => !userProfileIds.includes(id)
+  );
+
+  // Auto-sync: Remove employees from project chat if they're no longer in ANY milestone
+  if (removedEmployeeIds.length > 0 && milestone.project) {
+    // Check each removed employee
+    for (const removedId of removedEmployeeIds) {
+      // Check if they're still assigned to any other milestone in this project
+      const stillAssigned = await prisma.employeeMilestone.findFirst({
+        where: {
+          userProfileId: removedId,
+          milestone: {
+            projectId: milestone.project.id,
+            id: { not: milestoneId }, // Exclude current milestone
+          },
+        },
+      });
+
+      // Only remove from chat if not assigned to any other milestone
+      if (!stillAssigned) {
+        const projectConversation = await prisma.conversation.findFirst({
+          where: {
+            type: "PROJECT",
+            projectId: milestone.project.id,
+          },
+        });
+
+        if (projectConversation) {
+          await prisma.conversationParticipant.deleteMany({
+            where: {
+              conversationId: projectConversation.id,
+              userProfileId: removedId,
+            },
+          });
+
+          // Emit socket event
+          try {
+            const { getIO } = require("../../../socket");
+            const io = getIO();
+            io.to(`user:${removedId}`).emit("conversation:removed", {
+              conversationId: projectConversation.id,
+            });
+          } catch (error) {
+            console.error("Error emitting removal event:", error);
+          }
+        }
+      }
+    }
+  }
+
   return await prisma.milestone.findUnique({
     where: { id: milestoneId },
     include: {

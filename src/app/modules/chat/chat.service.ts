@@ -701,6 +701,59 @@ const removeParticipantFromConversation = async (
     );
   }
 
+  // For PROJECT conversations, prevent removing project-related participants
+  if (conversation.type === "PROJECT" && conversation.projectId) {
+    // Get project with all related participants
+    const project = await prisma.project.findUnique({
+      where: { id: conversation.projectId },
+      include: {
+        milestones: {
+          include: {
+            employeeMilestones: {
+              select: { userProfileId: true },
+            },
+          },
+        },
+        userProfile: { select: { id: true } },
+      },
+    });
+
+    // Get all admin user profiles
+    const adminProfiles = await prisma.userProfile.findMany({
+      where: {
+        user: { roles: { some: { role: { name: "ADMIN" } } } },
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+
+    // Collect protected participants
+    const protectedIds = new Set<string>();
+
+    // Add all admins
+    adminProfiles.forEach((admin) => protectedIds.add(admin.id));
+
+    // Add client
+    if (project?.userProfile) {
+      protectedIds.add(project.userProfile.id);
+    }
+
+    // Add assigned employees
+    project?.milestones.forEach((milestone) => {
+      milestone.employeeMilestones.forEach((emp) => {
+        protectedIds.add(emp.userProfileId);
+      });
+    });
+
+    // Check if participant is protected
+    if (protectedIds.has(participantUserProfileId)) {
+      throw new HTTPError(
+        httpStatus.FORBIDDEN,
+        "Cannot remove project-related participants (admins, client, or assigned employees) from project chat"
+      );
+    }
+  }
+
   await prisma.conversationParticipant.deleteMany({
     where: {
       conversationId,
