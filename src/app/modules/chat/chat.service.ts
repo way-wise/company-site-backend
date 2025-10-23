@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import httpStatus from "http-status";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import prisma from "../../../shared/prismaClient";
+import { getIO } from "../../../socket";
 import { HTTPError } from "../../errors/HTTPError";
 import {
   IPaginationParams,
@@ -134,6 +135,19 @@ const createConversationIntoDB = async (
       },
     },
   });
+
+  // Emit socket event to notify all participants about the new conversation
+  try {
+    const io = getIO();
+    conversation.participants.forEach((participant) => {
+      io.to(`user:${participant.userProfileId}`).emit(
+        "conversation:new",
+        conversation
+      );
+    });
+  } catch (error) {
+    console.error("Error emitting conversation:new event:", error);
+  }
 
   return conversation;
 };
@@ -451,10 +465,36 @@ const addParticipantsToConversation = async (
     skipDuplicates: true,
   });
 
-  return await getSingleConversationFromDB(
+  const updatedConversation = await getSingleConversationFromDB(
     conversationId,
     currentUserProfileId
   );
+
+  // Emit socket event to notify new participants about the conversation
+  try {
+    const io = getIO();
+    payload.userProfileIds.forEach((userProfileId) => {
+      io.to(`user:${userProfileId}`).emit(
+        "conversation:new",
+        updatedConversation
+      );
+    });
+
+    // Also notify all existing participants about the update
+    updatedConversation.participants.forEach((participant) => {
+      io.to(`user:${participant.userProfileId}`).emit(
+        "conversation:updated",
+        updatedConversation
+      );
+    });
+  } catch (error) {
+    console.error(
+      "Error emitting conversation:new event for new participants:",
+      error
+    );
+  }
+
+  return updatedConversation;
 };
 
 const removeParticipantFromConversation = async (
@@ -495,6 +535,31 @@ const removeParticipantFromConversation = async (
       userProfileId: participantUserProfileId,
     },
   });
+
+  // Emit socket events for real-time updates
+  try {
+    const io = getIO();
+
+    // Notify the removed participant
+    io.to(`user:${participantUserProfileId}`).emit("conversation:removed", {
+      conversationId,
+    });
+
+    // Notify all remaining participants about the update
+    const updatedConversation = await getSingleConversationFromDB(
+      conversationId,
+      currentUserProfileId
+    );
+
+    updatedConversation.participants.forEach((participant) => {
+      io.to(`user:${participant.userProfileId}`).emit(
+        "conversation:updated",
+        updatedConversation
+      );
+    });
+  } catch (error) {
+    console.error("Error emitting participant removal events:", error);
+  }
 
   return { success: true };
 };

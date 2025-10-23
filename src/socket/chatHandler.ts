@@ -148,6 +148,23 @@ export const registerChatHandlers = (
       // Broadcast to all participants in the conversation room
       io.to(conversationId).emit("message:new", message);
 
+      // Also notify all participants in their personal rooms for conversation list updates
+      const allParticipants = await prisma.conversationParticipant.findMany({
+        where: { conversationId },
+        select: { userProfileId: true },
+      });
+
+      allParticipants.forEach((participant) => {
+        io.to(`user:${participant.userProfileId}`).emit(
+          "conversation:updated",
+          {
+            conversationId,
+            lastMessage: message,
+            updatedAt: new Date(),
+          }
+        );
+      });
+
       console.log(
         `Message sent in conversation ${conversationId} by ${socket.email}`
       );
