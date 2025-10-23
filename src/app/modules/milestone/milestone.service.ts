@@ -269,10 +269,31 @@ const assignEmployeesToMilestone = async (
   milestoneId: string,
   userProfileIds: string[]
 ) => {
-  // First verify milestone exists
-  await prisma.milestone.findUniqueOrThrow({
+  // First verify milestone exists and get project info
+  const milestone = await prisma.milestone.findUniqueOrThrow({
     where: { id: milestoneId },
+    include: {
+      project: {
+        select: {
+          id: true,
+        },
+      },
+    },
   });
+
+  // Get existing employee assignments before deletion
+  const existingAssignments = await prisma.employeeMilestone.findMany({
+    where: { milestoneId },
+    select: { userProfileId: true },
+  });
+  const existingEmployeeIds = new Set(
+    existingAssignments.map((a) => a.userProfileId)
+  );
+
+  // Find new employees (not previously assigned)
+  const newEmployeeIds = userProfileIds.filter(
+    (id) => !existingEmployeeIds.has(id)
+  );
 
   // Delete existing assignments
   await prisma.employeeMilestone.deleteMany({
@@ -288,6 +309,102 @@ const assignEmployeesToMilestone = async (
   await prisma.employeeMilestone.createMany({
     data: assignments,
   });
+
+  // Auto-sync: Add new employees to project chat if it exists
+  if (newEmployeeIds.length > 0 && milestone.project) {
+    const projectConversation = await prisma.conversation.findFirst({
+      where: {
+        type: "PROJECT",
+        projectId: milestone.project.id,
+      },
+      include: {
+        participants: {
+          select: {
+            userProfileId: true,
+          },
+        },
+      },
+    });
+
+    if (projectConversation) {
+      // Filter out employees who are already participants
+      const existingParticipantIds = new Set(
+        projectConversation.participants.map((p) => p.userProfileId)
+      );
+      const employeesToAdd = newEmployeeIds.filter(
+        (id) => !existingParticipantIds.has(id)
+      );
+
+      // Add new employees to the project chat
+      if (employeesToAdd.length > 0) {
+        await prisma.conversationParticipant.createMany({
+          data: employeesToAdd.map((userProfileId) => ({
+            conversationId: projectConversation.id,
+            userProfileId,
+            isAdmin: true, // PROJECT chat participants are admins
+          })),
+          skipDuplicates: true,
+        });
+
+        // Emit socket events to notify new participants
+        try {
+          const { getIO } = require("../../../socket");
+          const io = getIO();
+
+          // Fetch updated conversation for socket event
+          const updatedConversation = await prisma.conversation.findUnique({
+            where: { id: projectConversation.id },
+            include: {
+              participants: {
+                include: {
+                  userProfile: {
+                    select: {
+                      id: true,
+                      user: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                        },
+                      },
+                      profilePhoto: true,
+                    },
+                  },
+                },
+              },
+              project: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          });
+
+          // Notify new employees about the conversation
+          employeesToAdd.forEach((userProfileId) => {
+            io.to(`user:${userProfileId}`).emit(
+              "conversation:new",
+              updatedConversation
+            );
+          });
+
+          // Notify all participants about the update
+          updatedConversation?.participants.forEach((participant) => {
+            io.to(`user:${participant.userProfileId}`).emit(
+              "conversation:updated",
+              updatedConversation
+            );
+          });
+        } catch (error) {
+          console.error(
+            "Error emitting socket events for auto-added participants:",
+            error
+          );
+        }
+      }
+    }
+  }
 
   return await prisma.milestone.findUnique({
     where: { id: milestoneId },

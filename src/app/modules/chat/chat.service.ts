@@ -77,16 +77,116 @@ const createConversationIntoDB = async (
     }
   }
 
-  // If PROJECT type, verify project exists
+  // If PROJECT type, verify project exists and prepare auto-participants
+  let autoParticipantIds: string[] = [];
   if (type === "PROJECT" && projectId) {
+    // Check if conversation already exists for this project
+    const existingProjectConversation = await prisma.conversation.findFirst({
+      where: {
+        type: "PROJECT",
+        projectId: projectId,
+      },
+      include: {
+        participants: {
+          include: {
+            userProfile: {
+              select: {
+                id: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+                profilePhoto: true,
+              },
+            },
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (existingProjectConversation) {
+      return existingProjectConversation;
+    }
+
     const project = await prisma.project.findUnique({
       where: { id: projectId },
+      include: {
+        milestones: {
+          include: {
+            employeeMilestones: {
+              select: {
+                userProfileId: true,
+              },
+            },
+          },
+        },
+        userProfile: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!project) {
       throw new HTTPError(httpStatus.NOT_FOUND, "Project not found");
     }
+
+    // 1. Get all users with ADMIN role
+    const adminUsers = await prisma.userProfile.findMany({
+      where: {
+        user: {
+          roles: {
+            some: {
+              role: {
+                name: "ADMIN",
+              },
+            },
+          },
+        },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    // 2. Get all employees assigned to project milestones
+    const milestoneEmployeeIds = new Set<string>();
+    project.milestones.forEach((milestone) => {
+      milestone.employeeMilestones.forEach((emp) => {
+        milestoneEmployeeIds.add(emp.userProfileId);
+      });
+    });
+
+    // 3. Get project client
+    const clientId = project.userProfile.id;
+
+    // 4. Combine all unique userProfileIds
+    autoParticipantIds = [
+      ...adminUsers.map((admin) => admin.id),
+      ...Array.from(milestoneEmployeeIds),
+      clientId,
+    ];
+
+    // Remove duplicates and current user (will be added separately as admin)
+    autoParticipantIds = Array.from(
+      new Set(autoParticipantIds.filter((id) => id !== currentUserProfileId))
+    );
   }
+
+  // Determine which participant IDs to use
+  const finalParticipantIds =
+    type === "PROJECT" ? autoParticipantIds : participantIds;
 
   // Create conversation with participants
   const conversation = await prisma.conversation.create({
@@ -102,9 +202,9 @@ const createConversationIntoDB = async (
             isAdmin: true,
           },
           // Add other participants
-          ...participantIds.map((id: string) => ({
+          ...finalParticipantIds.map((id: string) => ({
             userProfileId: id,
-            isAdmin: type === "DIRECT", // In DIRECT chats, both are admins
+            isAdmin: type === "DIRECT" || type === "PROJECT", // In DIRECT and PROJECT chats, all are admins (for PROJECT, admins can manage)
           })),
         ],
       },
@@ -454,6 +554,78 @@ const addParticipantsToConversation = async (
       httpStatus.BAD_REQUEST,
       "Cannot add participants to direct conversations"
     );
+  }
+
+  // For PROJECT conversations, validate that participants are project-related
+  if (conversation.type === "PROJECT" && conversation.projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: conversation.projectId },
+      include: {
+        milestones: {
+          include: {
+            employeeMilestones: {
+              select: {
+                userProfileId: true,
+              },
+            },
+          },
+        },
+        userProfile: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new HTTPError(httpStatus.NOT_FOUND, "Project not found");
+    }
+
+    // Get all valid participant IDs for this project
+    const validParticipantIds = new Set<string>();
+
+    // 1. Add all admins
+    const adminUsers = await prisma.userProfile.findMany({
+      where: {
+        user: {
+          roles: {
+            some: {
+              role: {
+                name: "ADMIN",
+              },
+            },
+          },
+        },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+    adminUsers.forEach((admin) => validParticipantIds.add(admin.id));
+
+    // 2. Add milestone employees
+    project.milestones.forEach((milestone) => {
+      milestone.employeeMilestones.forEach((emp) => {
+        validParticipantIds.add(emp.userProfileId);
+      });
+    });
+
+    // 3. Add project client
+    validParticipantIds.add(project.userProfile.id);
+
+    // Validate each new participant
+    const invalidParticipants = payload.userProfileIds.filter(
+      (id) => !validParticipantIds.has(id)
+    );
+
+    if (invalidParticipants.length > 0) {
+      throw new HTTPError(
+        httpStatus.BAD_REQUEST,
+        "Cannot add participants who are not part of the project (admins, milestone employees, or project client)"
+      );
+    }
   }
 
   // Add new participants
