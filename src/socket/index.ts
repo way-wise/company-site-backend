@@ -75,18 +75,64 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   });
 
   // Connection handler
-  io.on("connection", (socket: Socket) => {
+  io.on("connection", async (socket: Socket) => {
     const authSocket = socket as AuthenticatedSocket;
     console.log(
       `✅ User connected: ${authSocket.email} (${authSocket.userId})`
     );
 
+    // Join user's personal room
+    socket.join(`user:${authSocket.userProfileId}`);
+
+    // Broadcast online status to all conversations user is part of
+    try {
+      const userConversations = await prisma.conversationParticipant.findMany({
+        where: { userProfileId: authSocket.userProfileId },
+        select: { conversationId: true },
+      });
+
+      // Join all conversation rooms first
+      userConversations.forEach(({ conversationId }) => {
+        socket.join(conversationId);
+      });
+
+      // Then broadcast online status to all room members
+      userConversations.forEach(({ conversationId }) => {
+        socket.to(conversationId).emit("user:status", {
+          userProfileId: authSocket.userProfileId,
+          status: "online",
+        });
+      });
+    } catch (error) {
+      console.error("Error broadcasting online status:", error);
+    }
+
     // Register chat event handlers
     registerChatHandlers(io, authSocket);
 
     // Disconnection handler
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`❌ User disconnected: ${authSocket.email}`);
+
+      // Broadcast offline status to all conversations
+      try {
+        const userConversations = await prisma.conversationParticipant.findMany(
+          {
+            where: { userProfileId: authSocket.userProfileId },
+            select: { conversationId: true },
+          }
+        );
+
+        userConversations.forEach(({ conversationId }) => {
+          socket.to(conversationId).emit("user:status", {
+            userProfileId: authSocket.userProfileId,
+            status: "offline",
+            lastSeen: new Date(),
+          });
+        });
+      } catch (error) {
+        console.error("Error broadcasting offline status:", error);
+      }
     });
   });
 

@@ -56,6 +56,32 @@ export const registerChatHandlers = (
 
       // Join the socket room
       socket.join(conversationId);
+
+      // Get all participants in this conversation
+      const allParticipants = await prisma.conversationParticipant.findMany({
+        where: { conversationId },
+        select: { userProfileId: true },
+      });
+
+      // Get all connected sockets in this conversation room
+      const socketsInRoom = await io.in(conversationId).fetchSockets();
+      const onlineUserProfileIds = socketsInRoom.map(
+        (s) => (s as AuthenticatedSocket).userProfileId
+      );
+
+      // Send initial online status for all participants
+      const participantStatuses = allParticipants.map((p) => ({
+        userProfileId: p.userProfileId,
+        status: onlineUserProfileIds.includes(p.userProfileId)
+          ? "online"
+          : "offline",
+      }));
+
+      socket.emit("conversation:initial-status", {
+        conversationId,
+        participants: participantStatuses,
+      });
+
       console.log(`User ${socket.email} joined conversation ${conversationId}`);
     } catch (error) {
       console.error("Error joining conversation:", error);
