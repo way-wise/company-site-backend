@@ -6,10 +6,10 @@ import { DEFAULT_ROLES } from "../src/app/modules/role/role.constants";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("Seeding database...");
 
   // Seed Permissions
-  console.log("📝 Creating permissions...");
+  console.log(" Creating permissions...");
   for (const permission of DEFAULT_PERMISSIONS) {
     await prisma.permission.upsert({
       where: { name: permission.name },
@@ -20,7 +20,7 @@ async function main() {
   console.log(`✅ Created ${DEFAULT_PERMISSIONS.length} permissions`);
 
   // Seed Roles
-  console.log("👥 Creating roles...");
+  console.log("Creating roles...");
   for (const role of DEFAULT_ROLES) {
     await prisma.role.upsert({
       where: { name: role.name },
