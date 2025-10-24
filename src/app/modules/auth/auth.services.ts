@@ -86,6 +86,8 @@ const loginUser = async (payload: { email: string; password: string }) => {
     accessToken,
     refreshToken,
     passwordChangeRequired: userData.isPasswordChangeRequired,
+    email: userData.email,
+    userId: userData.id,
   };
 };
 

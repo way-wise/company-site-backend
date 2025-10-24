@@ -16,6 +16,8 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     httpOnly: true,
     sameSite: config.env === "production" ? "none" : "lax", // CSRF protection
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    domain: config.env === "production" ? undefined : undefined, // Let browser handle domain
+    path: "/", // Explicitly set path
   });
 
   // Set access token cookie
@@ -24,6 +26,15 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     httpOnly: true,
     sameSite: config.env === "production" ? "none" : "lax", // CSRF protection
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    domain: config.env === "production" ? undefined : undefined, // Let browser handle domain
+    path: "/", // Explicitly set path
+  });
+
+  // Get user data to include in response (for debugging and fallback)
+  const userData = await authServices.getMe({
+    email: result.email,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 3600,
   });
 
   sendResponse(res, {
@@ -32,6 +43,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     message: "Logged in successfully!",
     data: {
       passwordChangeRequired: result.passwordChangeRequired,
+      user: userData, // Include user data in response
     },
   });
 });
@@ -47,6 +59,8 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     httpOnly: true,
     sameSite: config.env === "production" ? "none" : "lax", // CSRF protection
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    domain: config.env === "production" ? undefined : undefined, // Let browser handle domain
+    path: "/", // Explicitly set path
   });
 
   sendResponse(res, {
@@ -124,12 +138,16 @@ const logout = catchAsync(
       secure: config.env === "production",
       httpOnly: true,
       sameSite: config.env === "production" ? "none" : "lax",
+      domain: config.env === "production" ? undefined : undefined,
+      path: "/",
     });
 
     res.clearCookie("refreshToken", {
       secure: config.env === "production",
       httpOnly: true,
       sameSite: config.env === "production" ? "none" : "lax",
+      domain: config.env === "production" ? undefined : undefined,
+      path: "/",
     });
 
     sendResponse(res, {
