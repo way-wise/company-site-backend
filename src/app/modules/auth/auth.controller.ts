@@ -14,7 +14,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
   res.cookie("refreshToken", refreshToken, {
     secure: config.env === "production", // Use secure cookies in production
     httpOnly: true,
-    sameSite: "strict", // CSRF protection
+    sameSite: "none", // CSRF protection
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
@@ -22,7 +22,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
   res.cookie("accessToken", accessToken, {
     secure: config.env === "production", // Use secure cookies in production
     httpOnly: true,
-    sameSite: "strict", // CSRF protection
+    sameSite: "none", // CSRF protection
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -45,7 +45,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   res.cookie("accessToken", result.accessToken, {
     secure: config.env === "production", // Use secure cookies in production
     httpOnly: true,
-    sameSite: "strict", // CSRF protection
+    sameSite: "none", // CSRF protection
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -123,13 +123,13 @@ const logout = catchAsync(
     res.clearCookie("accessToken", {
       secure: config.env === "production",
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "none",
     });
 
     res.clearCookie("refreshToken", {
       secure: config.env === "production",
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "none",
     });
 
     sendResponse(res, {
