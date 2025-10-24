@@ -66,7 +66,7 @@ export const registerChatHandlers = (
       // Get all connected sockets in this conversation room
       const socketsInRoom = await io.in(conversationId).fetchSockets();
       const onlineUserProfileIds = socketsInRoom.map(
-        (s) => (s as AuthenticatedSocket).userProfileId
+        (s) => s.data.userProfileId as string
       );
 
       // Send initial online status for all participants
@@ -120,7 +120,7 @@ export const registerChatHandlers = (
           conversationId,
           senderId: socket.userProfileId,
           content,
-          attachments: attachments || undefined,
+          attachments: attachments as any,
         },
         include: {
           sender: {
