@@ -31,7 +31,7 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   });
 
   // Socket authentication middleware
-  io.use(async (socket: Socket, next) => {
+  io.use(async (socket: Socket, next: any) => {
     try {
       // Get token from handshake auth or cookies
       const token =
@@ -92,12 +92,12 @@ export const initializeSocket = (httpServer: HTTPServer) => {
       });
 
       // Join all conversation rooms first
-      userConversations.forEach(({ conversationId }) => {
+      userConversations.forEach(({ conversationId }: any) => {
         socket.join(conversationId);
       });
 
       // Then broadcast online status to all room members
-      userConversations.forEach(({ conversationId }) => {
+      userConversations.forEach(({ conversationId }: any) => {
         socket.to(conversationId).emit("user:status", {
           userProfileId: authSocket.userProfileId,
           status: "online",
@@ -123,7 +123,7 @@ export const initializeSocket = (httpServer: HTTPServer) => {
           }
         );
 
-        userConversations.forEach(({ conversationId }) => {
+        userConversations.forEach(({ conversationId }: any) => {
           socket.to(conversationId).emit("user:status", {
             userProfileId: authSocket.userProfileId,
             status: "offline",

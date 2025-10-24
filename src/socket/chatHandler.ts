@@ -66,11 +66,11 @@ export const registerChatHandlers = (
       // Get all connected sockets in this conversation room
       const socketsInRoom = await io.in(conversationId).fetchSockets();
       const onlineUserProfileIds = socketsInRoom.map(
-        (s) => s.data.userProfileId as string
+        (s: any) => s.data.userProfileId as string
       );
 
       // Send initial online status for all participants
-      const participantStatuses = allParticipants.map((p) => ({
+      const participantStatuses = allParticipants.map((p: any) => ({
         userProfileId: p.userProfileId,
         status: onlineUserProfileIds.includes(p.userProfileId)
           ? "online"
@@ -154,7 +154,7 @@ export const registerChatHandlers = (
         select: { userProfileId: true },
       });
 
-      allParticipants.forEach((participant) => {
+      allParticipants.forEach((participant: any) => {
         io.to(`user:${participant.userProfileId}`).emit(
           "conversation:updated",
           {

@@ -28,7 +28,7 @@ export const hasPermission = async (
   // Check if any of the user's roles has the required permission
   for (const userRole of userRoles) {
     const hasRequiredPermission = userRole.role.rolePermissions.some(
-      (rp) => rp.permission.name === permissionName
+      (rp: any) => rp.permission.name === permissionName
     );
     if (hasRequiredPermission) {
       return true;
@@ -65,8 +65,8 @@ export const hasAnyPermission = async (
 
   // Check if any of the user's roles has any of the required permissions
   for (const userRole of userRoles) {
-    const hasRequiredPermission = userRole.role.rolePermissions.some((rp) =>
-      permissionNames.includes(rp.permission.name)
+    const hasRequiredPermission = userRole.role.rolePermissions.some(
+      (rp: any) => permissionNames.includes(rp.permission.name)
     );
     if (hasRequiredPermission) {
       return true;
@@ -103,8 +103,8 @@ export const hasAllPermissions = async (
 
   // Collect all unique permissions the user has
   const userPermissions = new Set<string>();
-  userRoles.forEach((userRole) => {
-    userRole.role.rolePermissions.forEach((rp) => {
+  userRoles.forEach((userRole: any) => {
+    userRole.role.rolePermissions.forEach((rp: any) => {
       userPermissions.add(rp.permission.name);
     });
   });
@@ -136,8 +136,8 @@ export const getUserPermissions = async (userId: string): Promise<string[]> => {
 
   // Collect all unique permissions
   const permissionsSet = new Set<string>();
-  userRoles.forEach((userRole) => {
-    userRole.role.rolePermissions.forEach((rp) => {
+  userRoles.forEach((userRole: any) => {
+    userRole.role.rolePermissions.forEach((rp: any) => {
       permissionsSet.add(rp.permission.name);
     });
   });

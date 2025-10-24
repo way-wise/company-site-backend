@@ -202,7 +202,7 @@ const createAdmin = async (req: any): Promise<UserProfile> => {
     password: hashedPassword,
   };
 
-  const result = await prisma.$transaction(async (txClient) => {
+  const result = await prisma.$transaction(async (txClient: any) => {
     // Create user
     const newUser = await txClient.user.create({
       data: userData,
@@ -245,7 +245,7 @@ const createClient = async (req: any): Promise<UserProfile> => {
       password: hashedPassword,
     };
 
-    const result = await prisma.$transaction(async (txClient) => {
+    const result = await prisma.$transaction(async (txClient: any) => {
       // Create user first
       const newUser = await txClient.user.create({
         data: userData,
@@ -309,7 +309,7 @@ const createEmployee = async (req: any): Promise<UserProfile> => {
       password: hashedPassword,
     };
 
-    const result = await prisma.$transaction(async (txClient) => {
+    const result = await prisma.$transaction(async (txClient: any) => {
       // Create user first
       const newUser = await txClient.user.create({
         data: userData,
