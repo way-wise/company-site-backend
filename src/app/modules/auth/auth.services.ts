@@ -25,7 +25,10 @@ const loginUser = async (payload: { email: string; password: string }) => {
   );
 
   if (!isCorrectPassword) {
-    throw new Error("Password is incorrect!");
+    throw new HTTPError(
+      httpStatus.UNAUTHORIZED,
+      "Invalid email or password. Please check your credentials and try again."
+    );
   }
 
   const accessToken = jwtHelpers.generateToken(
@@ -87,6 +90,14 @@ const loginUser = async (payload: { email: string; password: string }) => {
 };
 
 const refreshToken = async (token: string) => {
+  // Check if refresh token exists
+  if (!token) {
+    throw new HTTPError(
+      httpStatus.UNAUTHORIZED,
+      "Refresh token not provided. Please login again."
+    );
+  }
+
   let decodedData;
   try {
     decodedData = jwtHelpers.verifyToken(
@@ -94,7 +105,10 @@ const refreshToken = async (token: string) => {
       config.jwt.refresh_token_secret as Secret
     );
   } catch (err) {
-    throw new Error("You are not authorized!");
+    throw new HTTPError(
+      httpStatus.UNAUTHORIZED,
+      "Invalid refresh token. Please login again."
+    );
   }
 
   const userData = await prisma.user.findUniqueOrThrow({
