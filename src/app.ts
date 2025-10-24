@@ -15,10 +15,11 @@ app.use(
       "https://company-site-frontend.vercel.app",
       "http://localhost:3000",
       "http://192.168.1.37:3000",
+      "http://localhost:3001",
+      "https://localhost:3000",
+      "https://localhost:3001",
     ],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   })
 );
 app.use(express.json());
