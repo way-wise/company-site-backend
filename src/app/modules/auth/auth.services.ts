@@ -14,6 +14,22 @@ const loginUser = async (payload: { email: string; password: string }) => {
       email: payload.email,
       status: UserStatus.ACTIVE,
     },
+    include: {
+      userProfile: true,
+      roles: {
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
   const isCorrectPassword = await bcrypt.compare(
@@ -42,11 +58,12 @@ const loginUser = async (payload: { email: string; password: string }) => {
     data: { refreshToken },
   });
 
+  const { password, ...userWithoutPassword } = userData;
+
   return {
     accessToken,
     refreshToken,
-    email: userData.email,
-    userId: userData.id,
+    user: userWithoutPassword,
   };
 };
 

@@ -7,7 +7,7 @@ import { authServices } from "./auth.services";
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await authServices.loginUser(req.body);
-  const { refreshToken, accessToken, email } = result;
+  const { refreshToken, accessToken, user } = result;
 
   const cookieOptions = {
     secure: config.env === "production",
@@ -15,18 +15,17 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     sameSite: (config.env === "production" ? "none" : "lax") as "none" | "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
+    domain: config.env === "production" ? undefined : undefined,
   };
 
   res.cookie("refreshToken", refreshToken, cookieOptions);
   res.cookie("accessToken", accessToken, cookieOptions);
 
-  const userData = await authServices.getMe({ email } as any);
-
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Logged in successfully!",
-    data: { user: userData },
+    data: { user },
   });
 });
 
@@ -40,6 +39,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     sameSite: (config.env === "production" ? "none" : "lax") as "none" | "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
+    domain: config.env === "production" ? undefined : undefined,
   };
 
   res.cookie("accessToken", result.accessToken, cookieOptions);
@@ -78,6 +78,7 @@ const logout = catchAsync(
         | "none"
         | "lax",
       path: "/",
+      domain: config.env === "production" ? undefined : undefined,
     };
 
     res.clearCookie("accessToken", cookieOptions);
