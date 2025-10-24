@@ -9,7 +9,11 @@ const globalErrorHandler = (
 ) => {
   console.dir("Came to global error handler");
   console.log(err.name);
-  res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+
+  // Use the error's statusCode if it exists, otherwise default to 500
+  const statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+
+  res.status(statusCode).json({
     success: false,
     message: err.message || "Something went wrong",
     error: err,
