@@ -13,7 +13,6 @@ app.use(
       "https://www.waywisetech.com",
       "https://waywisetech.com",
       "https://company-site-frontend.vercel.app",
-      "https://company-site-backend-k69f.onrender.com",
       "http://localhost:3000",
       "http://192.168.1.37:3000",
     ],
