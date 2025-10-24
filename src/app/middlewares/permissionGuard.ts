@@ -1,14 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import { Secret } from "jsonwebtoken";
-import config from "../../config/config";
-import { jwtHelpers } from "../../helpers/jwtHelper";
+import { verifyAndFetchUser } from "../../helpers/authHelper";
 import { permissionHelper } from "../../helpers/permissionHelper";
-import prisma from "../../shared/prismaClient";
 import { HTTPError } from "../errors/HTTPError";
 
 /**
-
+ * Middleware to check if user has required permissions
  * @param permissions - Array of permission names required (user needs ANY of these)
  */
 const permissionGuard = (...permissions: string[]) => {
@@ -18,19 +15,8 @@ const permissionGuard = (...permissions: string[]) => {
     next: NextFunction
   ) => {
     try {
-      const token = req.cookies?.accessToken || req.headers.authorization;
-      if (!token) {
-        throw new HTTPError(httpStatus.UNAUTHORIZED, "You are not authorized");
-      }
-
-      const verifiedUser = jwtHelpers.verifyToken(
-        token,
-        config.jwt.jwt_secret as Secret
-      );
-
-      const user = await prisma.user.findUniqueOrThrow({
-        where: { email: verifiedUser.email },
-      });
+      // Verify token and fetch user (reuses shared logic)
+      const user = await verifyAndFetchUser(req);
 
       // Check if user has any of the required permissions
       if (permissions.length > 0) {
@@ -47,7 +33,7 @@ const permissionGuard = (...permissions: string[]) => {
         }
       }
 
-      req.user = { ...verifiedUser, id: user.id };
+      req.user = user;
       next();
     } catch (error) {
       next(error);

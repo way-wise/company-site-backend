@@ -8,34 +8,25 @@ import { authServices } from "./auth.services";
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await authServices.loginUser(req.body);
 
-  const { refreshToken, accessToken } = result;
+  const { refreshToken, accessToken, email } = result;
+
+  // Cookie configuration
+  const cookieOptions = {
+    secure: config.env === "production",
+    httpOnly: true,
+    sameSite: (config.env === "production" ? "none" : "lax") as "none" | "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  };
 
   // Set refresh token cookie
-  res.cookie("refreshToken", refreshToken, {
-    secure: config.env === "production", // Use secure cookies in production
-    httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax", // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    domain: config.env === "production" ? undefined : undefined, // Let browser handle domain
-    path: "/", // Explicitly set path
-  });
+  res.cookie("refreshToken", refreshToken, cookieOptions);
 
   // Set access token cookie
-  res.cookie("accessToken", accessToken, {
-    secure: config.env === "production", // Use secure cookies in production
-    httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax", // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    domain: config.env === "production" ? undefined : undefined, // Let browser handle domain
-    path: "/", // Explicitly set path
-  });
+  res.cookie("accessToken", accessToken, cookieOptions);
 
-  // Get user data to include in response (for debugging and fallback)
-  const userData = await authServices.getMe({
-    email: result.email,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600,
-  });
+  // Get user data to include in response
+  const userData = await authServices.getMe({ email } as any);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -43,7 +34,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     message: "Logged in successfully!",
     data: {
       passwordChangeRequired: result.passwordChangeRequired,
-      user: userData, // Include user data in response
+      user: userData,
     },
   });
 });
@@ -53,15 +44,17 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
   const result = await authServices.refreshToken(refreshToken);
 
-  // Set new access token cookie
-  res.cookie("accessToken", result.accessToken, {
-    secure: config.env === "production", // Use secure cookies in production
+  // Cookie configuration
+  const cookieOptions = {
+    secure: config.env === "production",
     httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax", // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    domain: config.env === "production" ? undefined : undefined, // Let browser handle domain
-    path: "/", // Explicitly set path
-  });
+    sameSite: (config.env === "production" ? "none" : "lax") as "none" | "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  };
+
+  // Set new access token cookie
+  res.cookie("accessToken", result.accessToken, cookieOptions);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -133,22 +126,19 @@ const logout = catchAsync(
     // Clear tokens from database
     await authServices.logout(user);
 
-    // Clear both access and refresh token cookies
-    res.clearCookie("accessToken", {
+    // Cookie configuration for clearing
+    const cookieOptions = {
       secure: config.env === "production",
       httpOnly: true,
-      sameSite: config.env === "production" ? "none" : "lax",
-      domain: config.env === "production" ? undefined : undefined,
+      sameSite: (config.env === "production" ? "none" : "lax") as
+        | "none"
+        | "lax",
       path: "/",
-    });
+    };
 
-    res.clearCookie("refreshToken", {
-      secure: config.env === "production",
-      httpOnly: true,
-      sameSite: config.env === "production" ? "none" : "lax",
-      domain: config.env === "production" ? undefined : undefined,
-      path: "/",
-    });
+    // Clear both access and refresh token cookies
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -159,8 +149,20 @@ const logout = catchAsync(
   }
 );
 
+const registerUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await authServices.registerUser(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "User registered successfully!",
+    data: result,
+  });
+});
+
 export const authController = {
   loginUser,
+  registerUser,
   refreshToken,
   changePassword,
   forgotPassword,

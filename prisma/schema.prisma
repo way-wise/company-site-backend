@@ -64,8 +64,6 @@ model User {
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
   isPasswordChangeRequired Boolean              @default(true)
-  accessToken              String?
-  expiresAt                Int?
   refreshToken             String?
   userProfile              UserProfile?
   roles                    UserRoleAssignment[]

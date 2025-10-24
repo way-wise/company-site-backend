@@ -1,10 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import { Secret } from "jsonwebtoken";
-import config from "../../config/config";
-import { jwtHelpers } from "../../helpers/jwtHelper";
+import { verifyAndFetchUser } from "../../helpers/authHelper";
 import { permissionHelper } from "../../helpers/permissionHelper";
-import prisma from "../../shared/prismaClient";
 import { HTTPError } from "../errors/HTTPError";
 
 /**
@@ -18,22 +15,8 @@ const roleGuard = (...roles: string[]) => {
     next: NextFunction
   ) => {
     try {
-      // Try to get token from cookies first, then fallback to Authorization header
-      const token = req.cookies?.accessToken || req.headers.authorization;
-      if (!token) {
-        throw new HTTPError(httpStatus.UNAUTHORIZED, "You are not authorized");
-      }
-
-      // Verify token
-      const verifiedUser = jwtHelpers.verifyToken(
-        token,
-        config.jwt.jwt_secret as Secret
-      );
-
-      // Get user from database to get the user ID
-      const user = await prisma.user.findUniqueOrThrow({
-        where: { email: verifiedUser.email },
-      });
+      // Verify token and fetch user (reuses shared logic)
+      const user = await verifyAndFetchUser(req);
 
       // Check if user has any of the required roles
       if (roles.length > 0) {
@@ -50,7 +33,7 @@ const roleGuard = (...roles: string[]) => {
         }
       }
 
-      req.user = { ...verifiedUser, id: user.id };
+      req.user = user;
       next();
     } catch (error) {
       next(error);

@@ -1,4 +1,4 @@
-import { UserStatus } from "@prisma/client";
+import { Gender, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import fs from "fs";
 import httpStatus from "http-status";
@@ -47,38 +47,11 @@ const loginUser = async (payload: { email: string; password: string }) => {
     config.jwt.refresh_token_expires_in as string
   );
 
-  // Calculate token expiration time (in seconds since epoch)
-  const expiresIn = config.jwt.expires_in as string;
-  const expirationMatch = expiresIn.match(/(\d+)([smhd])/);
-  let expiresAt = Math.floor(Date.now() / 1000); // Current time in seconds
-
-  if (expirationMatch) {
-    const value = parseInt(expirationMatch[1]);
-    const unit = expirationMatch[2];
-
-    switch (unit) {
-      case "s":
-        expiresAt += value;
-        break;
-      case "m":
-        expiresAt += value * 60;
-        break;
-      case "h":
-        expiresAt += value * 60 * 60;
-        break;
-      case "d":
-        expiresAt += value * 24 * 60 * 60;
-        break;
-    }
-  }
-
-  // Store tokens in database
+  // Store only refresh token in database for validation
   await prisma.user.update({
     where: { id: userData.id },
     data: {
-      accessToken,
       refreshToken,
-      expiresAt,
     },
   });
 
@@ -136,40 +109,7 @@ const refreshToken = async (token: string) => {
     config.jwt.expires_in as string
   );
 
-  // Calculate new token expiration time
-  const expiresIn = config.jwt.expires_in as string;
-  const expirationMatch = expiresIn.match(/(\d+)([smhd])/);
-  let expiresAt = Math.floor(Date.now() / 1000);
-
-  if (expirationMatch) {
-    const value = parseInt(expirationMatch[1]);
-    const unit = expirationMatch[2];
-
-    switch (unit) {
-      case "s":
-        expiresAt += value;
-        break;
-      case "m":
-        expiresAt += value * 60;
-        break;
-      case "h":
-        expiresAt += value * 60 * 60;
-        break;
-      case "d":
-        expiresAt += value * 24 * 60 * 60;
-        break;
-    }
-  }
-
-  // Update access token and expiration in database
-  await prisma.user.update({
-    where: { id: userData.id },
-    data: {
-      accessToken,
-      expiresAt,
-    },
-  });
-
+  // No need to store access token in database - it's in HTTPOnly cookie
   return {
     accessToken,
     passwordChangeRequired: userData.isPasswordChangeRequired,
@@ -312,23 +252,20 @@ const getMe = async (user: VerifiedUser) => {
   });
 
   // Remove sensitive data
-  const { password, accessToken, refreshToken, ...userWithoutPassword } =
-    userData;
+  const { password, ...userWithoutPassword } = userData;
 
   return userWithoutPassword;
 };
 
 const logout = async (user: VerifiedUser) => {
-  // Clear tokens from database
+  // Clear refresh token from database
   await prisma.user.update({
     where: {
       email: user.email,
       status: UserStatus.ACTIVE,
     },
     data: {
-      accessToken: null,
       refreshToken: null,
-      expiresAt: null,
     },
   });
 
@@ -337,8 +274,81 @@ const logout = async (user: VerifiedUser) => {
   };
 };
 
+const registerUser = async (payload: {
+  password: string;
+  client: {
+    name: string;
+    email: string;
+    gender: Gender;
+  };
+}) => {
+  // Check if user already exists
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: payload.client.email,
+    },
+  });
+
+  if (existingUser) {
+    throw new HTTPError(
+      httpStatus.CONFLICT,
+      "User with this email already exists"
+    );
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(payload.password, 10);
+
+  // Create user with client profile in transaction
+  const result = await prisma.$transaction(async (tx) => {
+    // Create user
+    const user = await tx.user.create({
+      data: {
+        name: payload.client.name,
+        email: payload.client.email,
+        password: hashedPassword,
+        status: UserStatus.ACTIVE,
+        isPasswordChangeRequired: false,
+      },
+    });
+
+    // Assign CLIENT role
+    const clientRole = await tx.role.findUnique({
+      where: { name: "CLIENT" },
+    });
+
+    if (clientRole) {
+      await tx.userRoleAssignment.create({
+        data: {
+          userId: user.id,
+          roleId: clientRole.id,
+        },
+      });
+    }
+
+    // Create user profile
+    await tx.userProfile.create({
+      data: {
+        userId: user.id,
+        gender: payload.client.gender,
+      },
+    });
+
+    return user;
+  });
+
+  // Remove password from response
+  const { password: _, ...userWithoutPassword } = result;
+
+  return {
+    message: "User registered successfully",
+    user: userWithoutPassword,
+  };
+};
+
 export const authServices = {
   loginUser,
+  registerUser,
   refreshToken,
   changePassword,
   forgotPassword,
