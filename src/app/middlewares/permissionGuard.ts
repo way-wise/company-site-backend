@@ -8,7 +8,7 @@ import prisma from "../../shared/prismaClient";
 import { HTTPError } from "../errors/HTTPError";
 
 /**
- * Middleware to check if user has required permissions
+
  * @param permissions - Array of permission names required (user needs ANY of these)
  */
 const permissionGuard = (...permissions: string[]) => {
@@ -18,19 +18,16 @@ const permissionGuard = (...permissions: string[]) => {
     next: NextFunction
   ) => {
     try {
-      // Try to get token from cookies first, then fallback to Authorization header
       const token = req.cookies?.accessToken || req.headers.authorization;
       if (!token) {
         throw new HTTPError(httpStatus.UNAUTHORIZED, "You are not authorized");
       }
 
-      // Verify token
       const verifiedUser = jwtHelpers.verifyToken(
         token,
         config.jwt.jwt_secret as Secret
       );
 
-      // Get user from database to get the user ID
       const user = await prisma.user.findUniqueOrThrow({
         where: { email: verifiedUser.email },
       });
