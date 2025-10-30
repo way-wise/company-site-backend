@@ -7,6 +7,11 @@ import router from "./app/routes";
 
 const app: Application = express();
 
+// Lightweight health endpoint (no auth, no heavy deps)
+app.get("/health", (_req: Request, res: Response) => {
+  res.status(200).send("ok");
+});
+
 app.use(
   cors({
     origin: [
