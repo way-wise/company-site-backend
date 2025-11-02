@@ -28,9 +28,11 @@ const applyForLeave = catchAsync(
 
     const result = await LeaveService.createLeaveApplication({
       employeeId: userProfile.id, // Maps to userProfileId internally
+      leaveTypeId: req.body.leaveTypeId,
       startDate: req.body.startDate,
       endDate: req.body.endDate,
       reason: req.body.reason,
+      attachmentUrl: req.body.attachmentUrl,
     });
 
     sendResponse(res, {
@@ -147,6 +149,7 @@ const approveLeave = catchAsync(
     const result = await LeaveService.updateLeaveStatus(id, {
       status: "APPROVED",
       approvedBy: userProfile.id,
+      comments: req.body.comments,
     });
 
     sendResponse(res, {
@@ -180,6 +183,8 @@ const rejectLeave = catchAsync(
     const result = await LeaveService.updateLeaveStatus(id, {
       status: "REJECTED",
       approvedBy: userProfile.id,
+      rejectionReason: req.body.rejectionReason,
+      comments: req.body.comments,
     });
 
     sendResponse(res, {
@@ -224,6 +229,69 @@ const deleteLeave = catchAsync(
   }
 );
 
+const cancelLeave = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!userProfile) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: "User profile not found",
+        data: null,
+      });
+    }
+
+    const result = await LeaveService.cancelLeaveApplication(
+      id,
+      userProfile.id
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Leave application cancelled successfully!",
+      data: result,
+    });
+  }
+);
+
+const getLeaveStats = catchAsync(async (req: Request, res: Response) => {
+  const validQueryParams = filterValidQueryParams(req.query, validParams);
+
+  const result = await LeaveService.getLeaveStats(validQueryParams);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Leave statistics fetched successfully!",
+    data: result,
+  });
+});
+
+const getLeaveCalendar = catchAsync(async (req: Request, res: Response) => {
+  const validQueryParams = filterValidQueryParams(req.query, [
+    "startDate",
+    "endDate",
+    "userProfileId",
+    "leaveTypeId",
+  ]);
+
+  const result = await LeaveService.getLeaveCalendar(validQueryParams);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Leave calendar fetched successfully!",
+    data: result,
+  });
+});
+
 export const LeaveController = {
   applyForLeave,
   getMyLeaves,
@@ -232,4 +300,7 @@ export const LeaveController = {
   approveLeave,
   rejectLeave,
   deleteLeave,
+  cancelLeave,
+  getLeaveStats,
+  getLeaveCalendar,
 };

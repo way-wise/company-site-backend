@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { DEFAULT_PERMISSIONS } from "../src/app/modules/permission/permission.constants";
 import { DEFAULT_ROLES } from "../src/app/modules/role/role.constants";
+import { DEFAULT_LEAVE_TYPES } from "../src/app/modules/leaveType/leaveType.constants";
 
 const prisma = new PrismaClient();
 
@@ -29,6 +30,17 @@ async function main() {
     });
   }
   console.log(`✅ Created ${DEFAULT_ROLES.length} roles`);
+
+  // Seed Leave Types
+  console.log("🏖️  Creating leave types...");
+  for (const leaveType of DEFAULT_LEAVE_TYPES) {
+    await prisma.leaveType.upsert({
+      where: { name: leaveType.name },
+      update: {},
+      create: leaveType,
+    });
+  }
+  console.log(`✅ Created ${DEFAULT_LEAVE_TYPES.length} leave types`);
 
   // Assign all permissions to SUPER_ADMIN
   console.log("🔐 Assigning permissions to roles...");
@@ -90,6 +102,9 @@ async function main() {
       // Leave Management
       "read_leave",
       "approve_leave",
+      "manage_leave_types",
+      "view_team_leaves",
+      "manage_leave_balance",
 
       // Blog Management
       "create_blog",

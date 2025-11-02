@@ -3,13 +3,14 @@ import { z } from "zod";
 const createLeaveApplicationSchema = z.object({
   body: z
     .object({
+      leaveTypeId: z.string().min(1, "Leave type is required"),
       startDate: z.string().refine(
         (date) => {
           const parsedDate = new Date(date);
-          return !isNaN(parsedDate.getTime()) && parsedDate > new Date();
+          return !isNaN(parsedDate.getTime());
         },
         {
-          message: "Start date must be a valid future date",
+          message: "Start date must be a valid date",
         }
       ),
       endDate: z.string().refine(
@@ -25,6 +26,7 @@ const createLeaveApplicationSchema = z.object({
         .string()
         .min(10, "Reason must be at least 10 characters")
         .max(500, "Reason cannot exceed 500 characters"),
+      attachmentUrl: z.string().url("Invalid attachment URL").optional(),
     })
     .refine(
       (data) => {
@@ -42,12 +44,23 @@ const createLeaveApplicationSchema = z.object({
 const updateLeaveStatusSchema = z.object({
   body: z.object({
     status: z.enum(["APPROVED", "REJECTED"]),
+    rejectionReason: z.string().optional(),
+    comments: z.string().optional(),
   }),
 });
 
 const leaveParamsSchema = z.object({
   params: z.object({
-    id: z.string().uuid("Invalid leave application ID"),
+    id: z.string().min(1, "Leave application ID is required"),
+  }),
+});
+
+const leaveCalendarQuerySchema = z.object({
+  query: z.object({
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    userProfileId: z.string().optional(),
+    leaveTypeId: z.string().optional(),
   }),
 });
 
@@ -55,4 +68,5 @@ export const leaveValidation = {
   createLeaveApplicationSchema,
   updateLeaveStatusSchema,
   leaveParamsSchema,
+  leaveCalendarQuerySchema,
 };

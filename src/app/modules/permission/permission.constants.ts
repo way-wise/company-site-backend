@@ -170,6 +170,21 @@ export const DEFAULT_PERMISSIONS = [
     group: PERMISSION_GROUPS.LEAVE_MANAGEMENT,
     description: "Delete leave applications",
   },
+  {
+    name: "manage_leave_types",
+    group: PERMISSION_GROUPS.LEAVE_MANAGEMENT,
+    description: "Manage leave types",
+  },
+  {
+    name: "view_team_leaves",
+    group: PERMISSION_GROUPS.LEAVE_MANAGEMENT,
+    description: "View team leave applications",
+  },
+  {
+    name: "manage_leave_balance",
+    group: PERMISSION_GROUPS.LEAVE_MANAGEMENT,
+    description: "Manage leave balances",
+  },
 
   // Blog Management
   {

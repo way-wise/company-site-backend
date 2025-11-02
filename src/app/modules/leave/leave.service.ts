@@ -8,12 +8,48 @@ import {
   ILeaveApplication,
   ILeaveApplicationWithRelations,
   IUpdateLeaveStatus,
+  ILeaveStats,
+  ILeaveCalendarEvent,
 } from "./leave.interface";
+
+// Helper function to calculate business days
+const calculateTotalDays = (startDate: Date, endDate: Date): number => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  let totalDays = 0;
+
+  while (start <= end) {
+    const dayOfWeek = start.getDay();
+    // Exclude weekends (0 = Sunday, 6 = Saturday)
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      totalDays++;
+    }
+    start.setDate(start.getDate() + 1);
+  }
+
+  return totalDays || 1; // Minimum 1 day
+};
 
 const createLeaveApplication = async (
   data: ICreateLeaveApplication
 ): Promise<ILeaveApplication> => {
-  const { employeeId: userProfileId, startDate, endDate } = data;
+  const { employeeId: userProfileId, startDate, endDate, leaveTypeId } = data;
+
+  // Check if leave type exists and is active
+  const leaveType = await prisma.leaveType.findUnique({
+    where: { id: leaveTypeId },
+  });
+
+  if (!leaveType) {
+    throw new HTTPError(httpStatus.NOT_FOUND, "Leave type not found");
+  }
+
+  if (!leaveType.isActive) {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "This leave type is currently inactive"
+    );
+  }
 
   // Check for overlapping leave applications
   const overlappingLeave = await prisma.leaveApplication.findFirst({
@@ -52,12 +88,46 @@ const createLeaveApplication = async (
     );
   }
 
+  // Calculate total days
+  const totalDays = calculateTotalDays(new Date(startDate), new Date(endDate));
+
+  // Check balance (only for leave types with balance tracking)
+  if (leaveType.defaultDaysPerYear > 0) {
+    const year = new Date().getFullYear();
+    const balance = await prisma.leaveBalance.findUnique({
+      where: {
+        userProfileId_leaveTypeId_year: {
+          userProfileId,
+          leaveTypeId,
+          year,
+        },
+      },
+    });
+
+    if (!balance) {
+      throw new HTTPError(
+        httpStatus.BAD_REQUEST,
+        "No leave balance found for this leave type"
+      );
+    }
+
+    if (balance.remainingDays < totalDays) {
+      throw new HTTPError(
+        httpStatus.BAD_REQUEST,
+        `Insufficient leave balance. You have ${balance.remainingDays} days remaining`
+      );
+    }
+  }
+
   const result = await prisma.leaveApplication.create({
     data: {
       userProfileId,
+      leaveTypeId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
+      totalDays,
       reason: data.reason,
+      attachmentUrl: data.attachmentUrl,
     },
   });
 
@@ -79,6 +149,12 @@ const getMyLeaveApplications = async (
   if (filters.status) {
     andConditions.push({
       status: filters.status as LeaveStatus,
+    });
+  }
+
+  if (filters.leaveTypeId) {
+    andConditions.push({
+      leaveTypeId: filters.leaveTypeId,
     });
   }
 
@@ -117,6 +193,14 @@ const getMyLeaveApplications = async (
               email: true,
             },
           },
+        },
+      },
+      leaveType: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          color: true,
         },
       },
       approver: {
@@ -168,6 +252,12 @@ const getAllLeaveApplications = async (
     });
   }
 
+  if (filters.leaveTypeId) {
+    andConditions.push({
+      leaveTypeId: filters.leaveTypeId,
+    });
+  }
+
   if (filters.approvedBy) {
     andConditions.push({
       approvedBy: filters.approvedBy,
@@ -209,6 +299,14 @@ const getAllLeaveApplications = async (
               email: true,
             },
           },
+        },
+      },
+      leaveType: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          color: true,
         },
       },
       approver: {
@@ -258,6 +356,14 @@ const getSingleLeaveApplication = async (
           },
         },
       },
+      leaveType: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          color: true,
+        },
+      },
       approver: {
         include: {
           user: {
@@ -299,6 +405,8 @@ const updateLeaveStatus = async (
     data: {
       status: data.status,
       approvedBy: data.approvedBy,
+      rejectionReason: data.rejectionReason,
+      comments: data.comments,
     },
     include: {
       userProfile: {
@@ -310,6 +418,14 @@ const updateLeaveStatus = async (
               email: true,
             },
           },
+        },
+      },
+      leaveType: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          color: true,
         },
       },
       approver: {
@@ -325,6 +441,32 @@ const updateLeaveStatus = async (
       },
     },
   });
+
+  // Update balance if approved
+  if (data.status === "APPROVED" && existingLeave.leaveTypeId) {
+    const year = new Date().getFullYear();
+    const balance = await prisma.leaveBalance.findUnique({
+      where: {
+        userProfileId_leaveTypeId_year: {
+          userProfileId: existingLeave.userProfileId,
+          leaveTypeId: existingLeave.leaveTypeId,
+          year,
+        },
+      },
+    });
+
+    if (balance) {
+      await prisma.leaveBalance.update({
+        where: { id: balance.id },
+        data: {
+          usedDays: { increment: existingLeave.totalDays },
+          remainingDays: {
+            decrement: existingLeave.totalDays,
+          },
+        },
+      });
+    }
+  }
 
   return result;
 };
@@ -362,6 +504,238 @@ const deleteLeaveApplication = async (
   return result;
 };
 
+const cancelLeaveApplication = async (
+  id: string,
+  userProfileId: string
+): Promise<ILeaveApplicationWithRelations> => {
+  const existingLeave = await prisma.leaveApplication.findUnique({
+    where: { id },
+    include: {
+      leaveType: true,
+    },
+  });
+
+  if (!existingLeave) {
+    throw new HTTPError(httpStatus.NOT_FOUND, "Leave application not found");
+  }
+
+  if (existingLeave.userProfileId !== userProfileId) {
+    throw new HTTPError(
+      httpStatus.FORBIDDEN,
+      "You can only cancel your own leave applications"
+    );
+  }
+
+  if (existingLeave.status !== "APPROVED") {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "Only approved leave applications can be cancelled"
+    );
+  }
+
+  const result = await prisma.leaveApplication.update({
+    where: { id },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+    },
+    include: {
+      userProfile: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+      leaveType: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          color: true,
+        },
+      },
+      approver: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Restore balance
+  if (existingLeave.leaveType.defaultDaysPerYear > 0) {
+    const year = new Date().getFullYear();
+    const balance = await prisma.leaveBalance.findUnique({
+      where: {
+        userProfileId_leaveTypeId_year: {
+          userProfileId: existingLeave.userProfileId,
+          leaveTypeId: existingLeave.leaveTypeId,
+          year,
+        },
+      },
+    });
+
+    if (balance) {
+      await prisma.leaveBalance.update({
+        where: { id: balance.id },
+        data: {
+          usedDays: { decrement: existingLeave.totalDays },
+          remainingDays: { increment: existingLeave.totalDays },
+        },
+      });
+    }
+  }
+
+  return result;
+};
+
+const getLeaveStats = async (filters?: any): Promise<ILeaveStats> => {
+  const year = filters?.year || new Date().getFullYear();
+
+  const whereConditions: Prisma.LeaveApplicationWhereInput = {
+    ...(filters?.userProfileId && { userProfileId: filters.userProfileId }),
+    ...(filters?.year && {
+      OR: [
+        { startDate: { gte: new Date(year, 0, 1) } },
+        { endDate: { lte: new Date(year, 11, 31) } },
+      ],
+    }),
+  };
+
+  const [
+    total,
+    pending,
+    approved,
+    rejected,
+    cancelled,
+    allApplications,
+  ] = await Promise.all([
+    prisma.leaveApplication.count({ where: whereConditions }),
+    prisma.leaveApplication.count({
+      where: { ...whereConditions, status: "PENDING" },
+    }),
+    prisma.leaveApplication.count({
+      where: { ...whereConditions, status: "APPROVED" },
+    }),
+    prisma.leaveApplication.count({
+      where: { ...whereConditions, status: "REJECTED" },
+    }),
+    prisma.leaveApplication.count({
+      where: { ...whereConditions, status: "CANCELLED" },
+    }),
+    prisma.leaveApplication.findMany({
+      where: whereConditions,
+      include: {
+        leaveType: {
+          select: {
+            name: true,
+            color: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  // Count by type
+  const typeCountMap = new Map<string, { count: number; color: string | null }>();
+
+  allApplications.forEach((app) => {
+    const typeName = app.leaveType.name;
+    const existing = typeCountMap.get(typeName) || { count: 0, color: app.leaveType.color };
+    typeCountMap.set(typeName, {
+      count: existing.count + 1,
+      color: app.leaveType.color,
+    });
+  });
+
+  const byType = Array.from(typeCountMap.entries()).map(([type, data]) => ({
+    type,
+    count: data.count,
+    color: data.color,
+  }));
+
+  return {
+    total,
+    pending,
+    approved,
+    rejected,
+    cancelled,
+    byType,
+  };
+};
+
+const getLeaveCalendar = async (filters?: any): Promise<ILeaveCalendarEvent[]> => {
+  const whereConditions: Prisma.LeaveApplicationWhereInput = {
+    status: {
+      in: ["PENDING", "APPROVED"],
+    },
+    ...(filters?.userProfileId && { userProfileId: filters.userProfileId }),
+    ...(filters?.leaveTypeId && { leaveTypeId: filters.leaveTypeId }),
+    ...(filters?.startDate && {
+      startDate: {
+        gte: new Date(filters.startDate),
+      },
+    }),
+    ...(filters?.endDate && {
+      endDate: {
+        lte: new Date(filters.endDate),
+      },
+    }),
+  };
+
+  const leaves = await prisma.leaveApplication.findMany({
+    where: whereConditions,
+    include: {
+      userProfile: {
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+      leaveType: {
+        select: {
+          name: true,
+          color: true,
+        },
+      },
+    },
+    orderBy: {
+      startDate: "asc",
+    },
+  });
+
+  return leaves.map((leave) => ({
+    id: leave.id,
+    title: `${leave.userProfile.user.name} - ${leave.leaveType.name}`,
+    start: leave.startDate,
+    end: leave.endDate,
+    user: {
+      name: leave.userProfile.user.name,
+      email: leave.userProfile.user.email,
+    },
+    type: {
+      name: leave.leaveType.name,
+      color: leave.leaveType.color,
+    },
+    status: leave.status,
+  }));
+};
+
 export const LeaveService = {
   createLeaveApplication,
   getMyLeaveApplications,
@@ -369,4 +743,7 @@ export const LeaveService = {
   getSingleLeaveApplication,
   updateLeaveStatus,
   deleteLeaveApplication,
+  cancelLeaveApplication,
+  getLeaveStats,
+  getLeaveCalendar,
 };

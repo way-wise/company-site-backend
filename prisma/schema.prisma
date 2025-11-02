@@ -95,6 +95,7 @@ model UserProfile {
   employeeMilestones        EmployeeMilestone[]
   approvedLeaveApplications LeaveApplication[]        @relation("ApprovedBy")
   leaveApplications         LeaveApplication[]
+  leaveBalances             LeaveBalance[]
   projects                  Project[]
   taskAssignments           TaskAssignment[]
   taskComments              TaskComment[]
@@ -265,22 +266,67 @@ model Comment {
   @@map("comments")
 }
 
-model LeaveApplication {
-  id            String       @id @default(ulid())
-  startDate     DateTime
-  endDate       DateTime
-  reason        String
-  status        LeaveStatus  @default(PENDING)
-  approvedBy    String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+model LeaveType {
+  id                 String             @id @default(ulid())
+  name               String             @unique
+  description        String?
+  defaultDaysPerYear Int                @default(0)
+  requiresDocument   Boolean            @default(false)
+  color              String?
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  leaveApplications  LeaveApplication[]
+  leaveBalances      LeaveBalance[]
+
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id            String      @id @default(ulid())
   userProfileId String
-  approver      UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id])
-  userProfile   UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  leaveTypeId   String
+  year          Int
+  totalDays     Int         @default(0)
+  usedDays      Int         @default(0)
+  remainingDays Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  leaveType     LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([userProfileId, leaveTypeId, year])
+  @@index([userProfileId])
+  @@index([leaveTypeId])
+  @@index([year])
+  @@map("leave_balances")
+}
+
+model LeaveApplication {
+  id              String       @id @default(ulid())
+  startDate       DateTime
+  endDate         DateTime
+  reason          String
+  status          LeaveStatus  @default(PENDING)
+  approvedBy      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  userProfileId   String
+  leaveTypeId     String
+  totalDays       Int
+  attachmentUrl   String?
+  cancelledAt     DateTime?
+  rejectionReason String?
+  comments        String?
+  leaveType       LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  approver        UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  userProfile     UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@index([userProfileId])
   @@index([status])
   @@index([approvedBy])
+  @@index([leaveTypeId])
+  @@index([startDate, endDate])
   @@map("leave_applications")
 }
 
@@ -327,6 +373,7 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED
 }
 
 enum TaskStatus {

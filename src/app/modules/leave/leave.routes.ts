@@ -1,5 +1,5 @@
 import express from "express";
-import roleGuard from "../../middlewares/roleGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { LeaveController } from "./leave.controller";
 import { leaveValidation } from "./leave.validationSchema";
@@ -9,45 +9,67 @@ const router = express.Router();
 // Employee routes
 router.post(
   "/apply",
-  roleGuard("EMPLOYEE"),
+  permissionGuard("create_leave"),
   validateRequest(leaveValidation.createLeaveApplicationSchema),
   LeaveController.applyForLeave
 );
 
-router.get("/mine", roleGuard("EMPLOYEE"), LeaveController.getMyLeaves);
+router.get("/mine", permissionGuard("read_leave"), LeaveController.getMyLeaves);
 
 router.delete(
   "/:id",
-  roleGuard("EMPLOYEE"),
+  permissionGuard("delete_leave"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.deleteLeave
+);
+
+// Employee routes (cancellation)
+router.patch(
+  "/:id/cancel",
+  permissionGuard("read_leave"), // Users can cancel their own approved leaves
+  validateRequest(leaveValidation.leaveParamsSchema),
+  LeaveController.cancelLeave
 );
 
 // Admin routes
 router.get(
   "/all",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("view_team_leaves"), // Admin permission to view all leaves
   LeaveController.getAllLeaves
 );
 
 router.get(
+  "/stats",
+  permissionGuard("view_team_leaves"), // Admin permission to view stats
+  LeaveController.getLeaveStats
+);
+
+router.get(
+  "/calendar",
+  permissionGuard("view_team_leaves"), // Admin permission to view calendar
+  LeaveController.getLeaveCalendar
+);
+
+router.get(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("read_leave", "view_team_leaves"), // Allow both own leaves and admin view
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.getSingleLeave
 );
 
 router.patch(
   "/:id/approve",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("approve_leave"),
   validateRequest(leaveValidation.leaveParamsSchema),
+  validateRequest(leaveValidation.updateLeaveStatusSchema),
   LeaveController.approveLeave
 );
 
 router.patch(
   "/:id/reject",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("approve_leave"),
   validateRequest(leaveValidation.leaveParamsSchema),
+  validateRequest(leaveValidation.updateLeaveStatusSchema),
   LeaveController.rejectLeave
 );
 
