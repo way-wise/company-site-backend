@@ -22,8 +22,6 @@ const getCookieOptions = () => {
     httpOnly: true,
     sameSite,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/",
-    domain: undefined, // Let browser handle domain based on request origin
   };
 };
 
@@ -31,10 +29,18 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await authServices.loginUser(req.body);
   const { refreshToken, accessToken, user } = result;
 
-  const cookieOptions = getCookieOptions();
-
-  res.cookie("refreshToken", refreshToken, cookieOptions);
-  res.cookie("accessToken", accessToken, cookieOptions);
+  res.cookie("accessToken", accessToken, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60,
+  });
+  res.cookie("refreshToken", refreshToken, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60 * 24 * 30,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -48,9 +54,12 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   const result = await authServices.refreshToken(refreshToken);
 
-  const cookieOptions = getCookieOptions();
-
-  res.cookie("accessToken", result.accessToken, cookieOptions);
+  res.cookie("accessToken", result.accessToken, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
