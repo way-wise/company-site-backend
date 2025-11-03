@@ -1,4 +1,8 @@
 import { Prisma, Role } from "@prisma/client";
+import {
+  invalidateAllPermissionCache,
+  invalidateUserCache,
+} from "../../../helpers/cacheHelper";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import prisma from "../../../shared/prismaClient";
 import {
@@ -231,6 +235,9 @@ const assignPermissionsToRole = async (
     });
   });
 
+  // Invalidate cache for all users with this role (permission changes affect all users)
+  invalidateAllPermissionCache();
+
   return { message: "Permissions assigned successfully" };
 };
 
@@ -255,6 +262,9 @@ const removePermissionFromRole = async (
       permissionId,
     },
   });
+
+  // Invalidate cache for all users (permission changes affect all users)
+  invalidateAllPermissionCache();
 
   return { message: "Permission removed from role successfully" };
 };
@@ -289,6 +299,9 @@ const assignRoleToUser = async (data: IAssignRoleToUser) => {
     data,
   });
 
+  // Invalidate cache for this specific user
+  invalidateUserCache(data.userId);
+
   return { message: "Role assigned to user successfully" };
 };
 
@@ -316,6 +329,9 @@ const removeRoleFromUser = async (data: IAssignRoleToUser) => {
       },
     },
   });
+
+  // Invalidate cache for this specific user
+  invalidateUserCache(data.userId);
 
   return { message: "Role removed from user successfully" };
 };

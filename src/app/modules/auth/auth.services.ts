@@ -126,8 +126,41 @@ const getMe = async (user: VerifiedUser) => {
     },
   });
 
+  // Extract unique permissions from roles (already fetched, no additional query)
+  const permissionsMap = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      group: string;
+      description: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    }
+  >();
+
+  userData.roles.forEach((userRole) => {
+    userRole.role.rolePermissions.forEach((rp) => {
+      if (!permissionsMap.has(rp.permission.id)) {
+        permissionsMap.set(rp.permission.id, {
+          id: rp.permission.id,
+          name: rp.permission.name,
+          group: rp.permission.group,
+          description: rp.permission.description,
+          createdAt: rp.permission.createdAt,
+          updatedAt: rp.permission.updatedAt,
+        });
+      }
+    });
+  });
+
   const { password, ...userWithoutPassword } = userData;
-  return userWithoutPassword;
+
+  // Add permissions to response
+  return {
+    ...userWithoutPassword,
+    permissions: Array.from(permissionsMap.values()),
+  };
 };
 
 const logout = async (user: VerifiedUser) => {

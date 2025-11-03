@@ -40,6 +40,8 @@ model RolePermission {
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
   @@map("role_permissions")
 }
 
@@ -52,6 +54,8 @@ model UserRoleAssignment {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
   @@map("user_roles")
 }
 

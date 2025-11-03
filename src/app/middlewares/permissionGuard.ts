@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import { verifyAndFetchUser } from "../../helpers/authHelper";
-import { permissionHelper } from "../../helpers/permissionHelper";
 import { HTTPError } from "../errors/HTTPError";
 
 /**
@@ -15,14 +14,17 @@ const permissionGuard = (...permissions: string[]) => {
     next: NextFunction
   ) => {
     try {
-      // Verify token and fetch user (reuses shared logic)
+      // Verify token and fetch user (already includes permissions)
       const user = await verifyAndFetchUser(req);
 
       // Check if user has any of the required permissions
+      // Use permissions already fetched in verifyAndFetchUser to avoid duplicate query
       if (permissions.length > 0) {
-        const hasRequiredPermission = await permissionHelper.hasAnyPermission(
-          user.id,
-          permissions
+        const userPermissions = user.permissions || [];
+        const userPermissionsSet = new Set(userPermissions);
+
+        const hasRequiredPermission = permissions.some((permName) =>
+          userPermissionsSet.has(permName)
         );
 
         if (!hasRequiredPermission) {
