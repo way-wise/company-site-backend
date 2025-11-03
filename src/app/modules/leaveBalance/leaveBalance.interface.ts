@@ -46,3 +46,20 @@ export type ILeaveBalanceFilterParams = {
   year?: number;
 };
 
+export interface IEmployeeLeaveSummary {
+  userProfileId: string;
+  employeeName: string;
+  employeeEmail: string;
+  totalUsedDays: number;
+  totalRemainingDays: number;
+  totalDays: number;
+  leaveBreakdown: Array<{
+    leaveTypeId: string;
+    leaveTypeName: string;
+    leaveTypeColor: string | null;
+    usedDays: number;
+    remainingDays: number;
+    totalDays: number;
+  }>;
+}
+

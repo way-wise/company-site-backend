@@ -506,24 +506,23 @@ const deleteLeaveApplication = async (
 
 const cancelLeaveApplication = async (
   id: string,
-  userProfileId: string
+  userId: string
 ): Promise<ILeaveApplicationWithRelations> => {
   const existingLeave = await prisma.leaveApplication.findUnique({
     where: { id },
     include: {
       leaveType: true,
+      userProfile: {
+        select: {
+          id: true,
+          userId: true,
+        },
+      },
     },
   });
 
   if (!existingLeave) {
     throw new HTTPError(httpStatus.NOT_FOUND, "Leave application not found");
-  }
-
-  if (existingLeave.userProfileId !== userProfileId) {
-    throw new HTTPError(
-      httpStatus.FORBIDDEN,
-      "You can only cancel your own leave applications"
-    );
   }
 
   if (existingLeave.status !== "APPROVED") {
@@ -532,6 +531,12 @@ const cancelLeaveApplication = async (
       "Only approved leave applications can be cancelled"
     );
   }
+
+  // Route already requires update_leave permission, so if user reaches here they have it
+  // Admins with update_leave permission can cancel any approved leave
+  // Note: Since route requires update_leave permission, only admins can access this endpoint
+
+  const userProfileId = existingLeave.userProfileId;
 
   const result = await prisma.leaveApplication.update({
     where: { id },

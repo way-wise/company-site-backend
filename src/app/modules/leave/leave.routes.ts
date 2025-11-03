@@ -23,10 +23,10 @@ router.delete(
   LeaveController.deleteLeave
 );
 
-// Employee routes (cancellation)
+// Cancel leave route - requires update_leave permission (admin can cancel any approved leave)
 router.patch(
   "/:id/cancel",
-  permissionGuard("read_leave"), // Users can cancel their own approved leaves
+  permissionGuard("update_leave"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.cancelLeave
 );

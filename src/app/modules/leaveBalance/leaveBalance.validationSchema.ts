@@ -48,10 +48,25 @@ const allocateBalanceSchema = z.object({
   }),
 });
 
+const allocateYearlyLeaveForAllSchema = z.object({
+  body: z.object({
+    year: z
+      .number()
+      .int("Year must be an integer")
+      .min(2000, "Year must be after 2000")
+      .max(2100, "Year must be before 2100"),
+    totalDays: z
+      .number()
+      .int("Days must be an integer")
+      .min(0, "Days cannot be negative")
+      .max(365, "Days cannot exceed 365"),
+  }),
+});
+
 export const leaveBalanceValidation = {
   createLeaveBalanceSchema,
   updateLeaveBalanceSchema,
   leaveBalanceParamsSchema,
   allocateBalanceSchema,
+  allocateYearlyLeaveForAllSchema,
 };
-

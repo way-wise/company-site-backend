@@ -19,7 +19,7 @@ app.use(
       "https://waywisetech.com",
       "https://company-site-frontend.vercel.app",
       "http://localhost:3000",
-      "http://192.168.1.37:3000",
+      "http://192.168.1.30:3000",
       "http://localhost:3001",
       "https://localhost:3000",
       "https://localhost:3001",

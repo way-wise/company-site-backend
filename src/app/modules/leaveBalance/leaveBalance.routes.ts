@@ -9,6 +9,12 @@ const router = express.Router();
 router.get("/", LeaveBalanceController.getAllLeaveBalances);
 
 router.get(
+  "/summary",
+  permissionGuard("read_leave", "view_team_leaves"),
+  LeaveBalanceController.getEmployeesLeaveSummary
+);
+
+router.get(
   "/user/:id",
   validateRequest(leaveBalanceValidation.leaveBalanceParamsSchema),
   LeaveBalanceController.getUserLeaveBalances
@@ -48,6 +54,13 @@ router.post(
   validateRequest(leaveBalanceValidation.leaveBalanceParamsSchema),
   validateRequest(leaveBalanceValidation.allocateBalanceSchema),
   LeaveBalanceController.allocateAnnualBalance
+);
+
+router.post(
+  "/allocate-all",
+  permissionGuard("manage_leave_balance"),
+  validateRequest(leaveBalanceValidation.allocateYearlyLeaveForAllSchema),
+  LeaveBalanceController.allocateYearlyLeaveForAll
 );
 
 export const leaveBalanceRoutes = router;

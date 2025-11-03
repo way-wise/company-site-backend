@@ -249,7 +249,7 @@ const cancelLeave = catchAsync(
 
     const result = await LeaveService.cancelLeaveApplication(
       id,
-      userProfile.id
+      user.id // Pass userId instead of userProfileId to check permissions
     );
 
     sendResponse(res, {
