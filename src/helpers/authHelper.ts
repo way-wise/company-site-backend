@@ -13,7 +13,17 @@ import { permissionHelper } from "./permissionHelper";
  */
 export const verifyAndFetchUser = async (req: Request & { user?: any }) => {
   // Try to get token from cookies first, then fallback to Authorization header
-  const token = req.cookies?.accessToken || req.headers.authorization;
+  let token = req.cookies?.accessToken;
+
+  // If no cookie token, try Authorization header
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    // Handle both "Bearer <token>" and plain token formats
+    token = authHeader.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : authHeader;
+  }
+
   if (!token) {
     throw new HTTPError(httpStatus.UNAUTHORIZED, "You are not authorized");
   }
