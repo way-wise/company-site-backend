@@ -1,5 +1,5 @@
 import express from "express";
-import roleGuard from "../../middlewares/roleGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { TaskController } from "./task.controller";
 import { taskValidationSchemas } from "./task.validationSchema";
@@ -8,56 +8,54 @@ const router = express.Router();
 
 router.post(
   "/",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("create_task"),
   validateRequest(taskValidationSchemas.create),
   TaskController.createTask
 );
 
-router.get("/", TaskController.getAllTasks);
+router.get("/", permissionGuard("read_task"), TaskController.getAllTasks);
 
-router.get("/:id", TaskController.getSingleTask);
+router.get("/:id", permissionGuard("read_task"), TaskController.getSingleTask);
 
 router.patch(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("update_task"),
   validateRequest(taskValidationSchemas.update),
   TaskController.updateTask
 );
 
 router.delete(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("delete_task"),
   TaskController.deleteTask
 );
 
 router.post(
   "/:id/assign-employees",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("assign_task"),
   validateRequest(taskValidationSchemas.assignEmployee),
   TaskController.assignEmployees
 );
 
 router.post(
   "/:id/comments",
+  permissionGuard("add_comment"),
   validateRequest(taskValidationSchemas.addComment),
   TaskController.addComment
 );
 
 router.patch(
   "/:id/progress",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("update_progress"),
   validateRequest(taskValidationSchemas.updateProgress),
   TaskController.updateProgress
 );
 
 router.patch(
   "/:id/time-tracking",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("update_time_tracking"),
   validateRequest(taskValidationSchemas.updateTimeTracking),
   TaskController.updateTimeTracking
 );
 
 export const TaskRoutes = router;
-
-
-

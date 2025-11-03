@@ -1,6 +1,5 @@
 import express from "express";
-import authGuard from "../../middlewares/authGuard";
-import roleGuard from "../../middlewares/roleGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { ProjectController } from "./project.controller";
 import { projectValidationSchemas } from "./project.validationSchema";
@@ -9,25 +8,33 @@ const router = express.Router();
 
 router.post(
   "/",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("create_project"),
   validateRequest(projectValidationSchemas.create),
   ProjectController.createProject
 );
 
-router.get("/", authGuard(), ProjectController.getAllProjects);
+router.get(
+  "/",
+  permissionGuard("view_all_projects"),
+  ProjectController.getAllProjects
+);
 
-router.get("/:id", authGuard(), ProjectController.getSingleProject);
+router.get(
+  "/:id",
+  permissionGuard("read_project"),
+  ProjectController.getSingleProject
+);
 
 router.patch(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("update_project"),
   validateRequest(projectValidationSchemas.update),
   ProjectController.updateProject
 );
 
 router.delete(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("delete_project"),
   ProjectController.deleteProject
 );
 

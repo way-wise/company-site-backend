@@ -9,7 +9,6 @@ const router = express.Router();
 // Get user roles (MUST come before /:id)
 router.get(
   "/user/:userId/roles",
-  authGuard(),
   permissionGuard("read_role"),
   roleController.getUserRoles
 );
@@ -24,7 +23,6 @@ router.get(
 // Assign role to user (MUST come before /:id)
 router.post(
   "/assign-user",
-  authGuard(),
   permissionGuard("assign_role"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -39,7 +37,6 @@ router.post(
 // Remove role from user (MUST come before /:id)
 router.post(
   "/remove-user",
-  authGuard(),
   permissionGuard("assign_role"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -54,7 +51,6 @@ router.post(
 // Get all roles
 router.get(
   "/",
-  authGuard(),
   permissionGuard("read_role"),
   roleController.getAllRoles
 );
@@ -62,7 +58,6 @@ router.get(
 // Get single role
 router.get(
   "/:id",
-  authGuard(),
   permissionGuard("read_role"),
   roleController.getSingleRole
 );
@@ -70,7 +65,6 @@ router.get(
 // Create role
 router.post(
   "/",
-  authGuard(),
   permissionGuard("create_role"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -85,7 +79,6 @@ router.post(
 // Update role
 router.put(
   "/:id",
-  authGuard(),
   permissionGuard("update_role"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -100,7 +93,6 @@ router.put(
 // Delete role
 router.delete(
   "/:id",
-  authGuard(),
   permissionGuard("delete_role"),
   roleController.deleteRole
 );
@@ -108,7 +100,6 @@ router.delete(
 // Assign permissions to role
 router.post(
   "/:id/permissions",
-  authGuard(),
   permissionGuard("update_role"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -123,7 +114,6 @@ router.post(
 // Remove permission from role
 router.delete(
   "/:roleId/permissions/:permissionId",
-  authGuard(),
   permissionGuard("update_role"),
   roleController.removePermissionFromRole
 );

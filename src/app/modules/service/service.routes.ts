@@ -1,5 +1,5 @@
 import express from "express";
-import roleGuard from "../../middlewares/roleGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { ServiceController } from "./service.controller";
 import { serviceValidationSchemas } from "./service.validationSchema";
@@ -8,25 +8,33 @@ const router = express.Router();
 
 router.post(
   "/",
-  // roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("create_service"),
   validateRequest(serviceValidationSchemas.create),
   ServiceController.createService
 );
 
-router.get("/", ServiceController.getAllService);
+router.get(
+  "/",
+  permissionGuard("read_service"),
+  ServiceController.getAllService
+);
 
-router.get("/:id", ServiceController.getSingleService);
+router.get(
+  "/:id",
+  permissionGuard("read_service"),
+  ServiceController.getSingleService
+);
 
 router.put(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("update_service"),
   validateRequest(serviceValidationSchemas.update),
   ServiceController.updateService
 );
 
 router.delete(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("delete_service"),
   ServiceController.deleteService
 );
 

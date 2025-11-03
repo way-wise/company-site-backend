@@ -6,7 +6,11 @@ import { leaveBalanceValidation } from "./leaveBalance.validationSchema";
 
 const router = express.Router();
 
-router.get("/", LeaveBalanceController.getAllLeaveBalances);
+router.get(
+  "/",
+  permissionGuard("read_leave", "manage_leave_balance"),
+  LeaveBalanceController.getAllLeaveBalances
+);
 
 router.get(
   "/summary",
@@ -16,12 +20,14 @@ router.get(
 
 router.get(
   "/user/:id",
+  permissionGuard("read_leave"),
   validateRequest(leaveBalanceValidation.leaveBalanceParamsSchema),
   LeaveBalanceController.getUserLeaveBalances
 );
 
 router.get(
   "/:id",
+  permissionGuard("read_leave"),
   validateRequest(leaveBalanceValidation.leaveBalanceParamsSchema),
   LeaveBalanceController.getSingleLeaveBalance
 );

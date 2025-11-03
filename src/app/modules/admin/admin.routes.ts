@@ -1,23 +1,36 @@
 import express from "express";
-import roleGuard from "../../middlewares/roleGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { AdminController } from "./admin.controller";
 import { adminValidationSchemas } from "./admin.ValidationSchema";
 
 const router = express.Router();
 
-router.get("/", roleGuard("ADMIN", "SUPER_ADMIN"), AdminController.getAllAdmin);
+router.get("/", permissionGuard("read_user"), AdminController.getAllAdmin);
 
-router.get("/:id", AdminController.getSingleAdmin);
+router.get(
+  "/:id",
+  permissionGuard("read_user"),
+  AdminController.getSingleAdmin
+);
 
 router.patch(
   "/:id",
+  permissionGuard("update_user"),
   validateRequest(adminValidationSchemas.update),
   AdminController.updateAdmin
 );
 
-router.delete("/:id", AdminController.deleteAdmin);
+router.delete(
+  "/:id",
+  permissionGuard("delete_user"),
+  AdminController.deleteAdmin
+);
 
-router.delete("/soft/:id", AdminController.softDeleteAdmin);
+router.delete(
+  "/soft/:id",
+  permissionGuard("delete_user"),
+  AdminController.softDeleteAdmin
+);
 
 export const AdminRoutes = router;

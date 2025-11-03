@@ -6,12 +6,21 @@ import { leaveTypeValidation } from "./leaveType.validationSchema";
 
 const router = express.Router();
 
-router.get("/active", LeaveTypeController.getActiveLeaveTypes);
+router.get(
+  "/active",
+  permissionGuard("read_leave"),
+  LeaveTypeController.getActiveLeaveTypes
+);
 
-router.get("/", LeaveTypeController.getAllLeaveTypes);
+router.get(
+  "/",
+  permissionGuard("read_leave"),
+  LeaveTypeController.getAllLeaveTypes
+);
 
 router.get(
   "/:id",
+  permissionGuard("read_leave"),
   validateRequest(leaveTypeValidation.leaveTypeParamsSchema),
   LeaveTypeController.getSingleLeaveType
 );
@@ -46,4 +55,3 @@ router.patch(
 );
 
 export const leaveTypeRoutes = router;
-

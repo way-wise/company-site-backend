@@ -1,5 +1,5 @@
 import express from "express";
-import roleGuard from "../../middlewares/roleGuard";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { MilestoneController } from "./milestone.controller";
 import { milestoneValidationSchemas } from "./milestone.validationSchema";
@@ -8,38 +8,46 @@ const router = express.Router();
 
 router.post(
   "/",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("create_milestone"),
   validateRequest(milestoneValidationSchemas.create),
   MilestoneController.createMilestone
 );
 
-router.get("/", MilestoneController.getAllMilestones);
+router.get(
+  "/",
+  permissionGuard("read_milestone"),
+  MilestoneController.getAllMilestones
+);
 
-router.get("/:id", MilestoneController.getSingleMilestone);
+router.get(
+  "/:id",
+  permissionGuard("read_milestone"),
+  MilestoneController.getSingleMilestone
+);
 
 router.patch(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("update_milestone"),
   validateRequest(milestoneValidationSchemas.update),
   MilestoneController.updateMilestone
 );
 
 router.delete(
   "/:id",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("delete_milestone"),
   MilestoneController.deleteMilestone
 );
 
 router.post(
   "/:id/assign-employees",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("manage_milestones"),
   validateRequest(milestoneValidationSchemas.assignEmployee),
   MilestoneController.assignEmployees
 );
 
 router.post(
   "/:id/assign-services",
-  roleGuard("ADMIN", "SUPER_ADMIN"),
+  permissionGuard("manage_milestones"),
   validateRequest(milestoneValidationSchemas.assignService),
   MilestoneController.assignServices
 );

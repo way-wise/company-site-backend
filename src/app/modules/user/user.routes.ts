@@ -1,20 +1,26 @@
 import express, { NextFunction, Request, Response } from "express";
 import { fileUploader } from "../../../helpers/fileUploader";
+import permissionGuard from "../../middlewares/permissionGuard";
 import { userController } from "./user.controller";
 import { userValidationSchema } from "./user.validationSchema";
 
 const router = express.Router();
 
-router.get("/all-users", (req: Request, res: Response, next: NextFunction) => {
-  try {
-    return userController.getAllUsers(req, res, next);
-  } catch (error) {
-    next(error);
+router.get(
+  "/all-users",
+  permissionGuard("read_user"),
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      return userController.getAllUsers(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.get(
   "/by-role/:roleId",
+  permissionGuard("read_user"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
       return userController.getUsersByRole(req, res, next);
@@ -26,7 +32,7 @@ router.get(
 
 router.post(
   "/create-admin-with-file",
-  // authGuard(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  permissionGuard("create_user"),
   fileUploader.upload.single("file"),
   (req: Request, res: Response, next: NextFunction) => {
     req.body = userValidationSchema.createAdminSchema.parse(
@@ -38,6 +44,7 @@ router.post(
 );
 router.post(
   "/create-admin",
+  permissionGuard("create_user"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = userValidationSchema.createAdminSchema.parse(req.body);
@@ -51,6 +58,7 @@ router.post(
 // Route for client creation with file upload
 router.post(
   "/create-client-with-file",
+  permissionGuard("create_user"),
   fileUploader.upload.single("file"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -67,6 +75,7 @@ router.post(
 // Route for client creation without file upload
 router.post(
   "/create-client",
+  permissionGuard("create_user"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = userValidationSchema.createClientSchema.parse(req.body);
@@ -80,6 +89,7 @@ router.post(
 // Route for employee creation with file upload
 router.post(
   "/create-employee-with-file",
+  permissionGuard("create_user"),
   fileUploader.upload.single("file"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -96,6 +106,7 @@ router.post(
 // Route for employee creation without file upload
 router.post(
   "/create-employee",
+  permissionGuard("create_user"),
   (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = userValidationSchema.createEmployeeSchema.parse(req.body);
@@ -107,18 +118,26 @@ router.post(
 );
 
 // Update user route
-router.put("/:id", userController.updateUser);
+router.put("/:id", permissionGuard("update_user"), userController.updateUser);
 
 // Ban user route
-router.post("/:id/ban", userController.banUser);
+router.post("/:id/ban", permissionGuard("ban_user"), userController.banUser);
 
 // Unban user route
-router.post("/:id/unban", userController.unbanUser);
+router.post(
+  "/:id/unban",
+  permissionGuard("ban_user"),
+  userController.unbanUser
+);
 
 // Delete user route
-router.delete("/:id", userController.deleteUser);
+router.delete(
+  "/:id",
+  permissionGuard("delete_user"),
+  userController.deleteUser
+);
 
 // Get single user route (must be last to avoid conflicts)
-router.get("/:id", userController.getSingleUser);
+router.get("/:id", permissionGuard("read_user"), userController.getSingleUser);
 
 export const userRoutes = router;
