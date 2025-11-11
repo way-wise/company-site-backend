@@ -1,9 +1,10 @@
+import { LeaveType } from "@prisma/client";
 import { z } from "zod";
 
 const createLeaveBalanceSchema = z.object({
   body: z.object({
     userProfileId: z.string().min(1, "User profile ID is required"),
-    leaveTypeId: z.string().min(1, "Leave type ID is required"),
+    leaveType: z.nativeEnum(LeaveType),
     year: z
       .number()
       .int("Year must be an integer")

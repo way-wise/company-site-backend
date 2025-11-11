@@ -1,9 +1,10 @@
-import { LeaveStatus } from "@prisma/client";
+import { LeaveStatus, LeaveType } from "@prisma/client";
+import { LeaveTypeConfig } from "./leaveType.config";
 
 export interface ILeaveApplication {
   id: string;
   userProfileId: string;
-  leaveTypeId: string;
+  leaveType: LeaveType;
   startDate: Date;
   endDate: Date;
   reason: string;
@@ -20,7 +21,7 @@ export interface ILeaveApplication {
 
 export interface ICreateLeaveApplication {
   employeeId: string; // Keep for backward compatibility, but maps to userProfileId
-  leaveTypeId: string;
+  leaveType?: LeaveType;
   startDate: Date;
   endDate: Date;
   reason: string;
@@ -35,6 +36,7 @@ export interface IUpdateLeaveStatus {
 }
 
 export interface ILeaveApplicationWithRelations extends ILeaveApplication {
+  leaveTypeMeta: LeaveTypeConfig;
   userProfile: {
     id: string;
     userId: string;
@@ -43,12 +45,6 @@ export interface ILeaveApplicationWithRelations extends ILeaveApplication {
       name: string;
       email: string;
     };
-  };
-  leaveType: {
-    id: string;
-    name: string;
-    description: string | null;
-    color: string | null;
   };
   approver?: {
     id: string;
@@ -68,9 +64,9 @@ export interface ILeaveStats {
   rejected: number;
   cancelled: number;
   byType: Array<{
-    type: string;
+    type: LeaveType;
     count: number;
-    color: string | null;
+    color: string;
   }>;
 }
 
@@ -84,8 +80,9 @@ export interface ILeaveCalendarEvent {
     email: string;
   };
   type: {
-    name: string;
-    color: string | null;
+    value: LeaveType;
+    label: string;
+    color: string;
   };
   status: LeaveStatus;
 }

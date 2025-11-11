@@ -9,7 +9,7 @@ export const validParams = [
   "status",
   "employeeId",
   "userProfileId",
-  "leaveTypeId",
+  "leaveType",
   "startDate",
   "endDate",
   "approvedBy",

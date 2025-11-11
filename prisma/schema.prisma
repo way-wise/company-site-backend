@@ -270,26 +270,10 @@ model Comment {
   @@map("comments")
 }
 
-model LeaveType {
-  id                 String             @id @default(ulid())
-  name               String             @unique
-  description        String?
-  defaultDaysPerYear Int                @default(0)
-  requiresDocument   Boolean            @default(false)
-  color              String?
-  isActive           Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  leaveApplications  LeaveApplication[]
-  leaveBalances      LeaveBalance[]
-
-  @@map("leave_types")
-}
-
 model LeaveBalance {
   id            String      @id @default(ulid())
   userProfileId String
-  leaveTypeId   String
+  leaveType     LeaveType
   year          Int
   totalDays     Int         @default(0)
   usedDays      Int         @default(0)
@@ -297,11 +281,10 @@ model LeaveBalance {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  leaveType     LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
 
-  @@unique([userProfileId, leaveTypeId, year])
+  @@unique([userProfileId, leaveType, year])
   @@index([userProfileId])
-  @@index([leaveTypeId])
+  @@index([leaveType])
   @@index([year])
   @@map("leave_balances")
 }
@@ -316,20 +299,19 @@ model LeaveApplication {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   userProfileId   String
-  leaveTypeId     String
+  leaveType       LeaveType
   totalDays       Int
   attachmentUrl   String?
   cancelledAt     DateTime?
   rejectionReason String?
   comments        String?
-  leaveType       LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
   approver        UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id])
   userProfile     UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@index([userProfileId])
   @@index([status])
   @@index([approvedBy])
-  @@index([leaveTypeId])
+  @@index([leaveType])
   @@index([startDate, endDate])
   @@map("leave_applications")
 }
@@ -378,6 +360,12 @@ enum LeaveStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+enum LeaveType {
+  CASUAL
+  SICK
+  EMERGENCY
 }
 
 enum TaskStatus {

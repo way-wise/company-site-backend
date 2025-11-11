@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { LeaveType, Prisma } from "@prisma/client";
 import httpStatus from "http-status";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import prisma from "../../../shared/prismaClient";
@@ -7,6 +7,7 @@ import {
   IPaginationParams,
   ISortingParams,
 } from "../../interfaces/paginationSorting";
+import { LEAVE_TYPE_CONFIG, leaveTypeValues } from "../leave/leaveType.config";
 import {
   ICreateLeaveBalance,
   IEmployeeLeaveSummary,
@@ -16,14 +17,32 @@ import {
   IUpdateLeaveBalance,
 } from "./leaveBalance.interface";
 
+const mapBalance = <T extends { leaveType: LeaveType }>(
+  balance: T
+): T & {
+  leaveTypeMeta: (typeof LEAVE_TYPE_CONFIG)[LeaveType];
+} => ({
+  ...balance,
+  leaveTypeMeta: LEAVE_TYPE_CONFIG[balance.leaveType],
+});
+
+const ensureValidLeaveType = (leaveType: LeaveType): LeaveType => {
+  if (!leaveTypeValues.includes(leaveType)) {
+    throw new HTTPError(httpStatus.BAD_REQUEST, "Invalid leave type");
+  }
+  return leaveType;
+};
+
 const createLeaveBalance = async (
   data: ICreateLeaveBalance
 ): Promise<ILeaveBalance> => {
+  const leaveType = ensureValidLeaveType(data.leaveType);
+
   const existingBalance = await prisma.leaveBalance.findUnique({
     where: {
-      userProfileId_leaveTypeId_year: {
+      userProfileId_leaveType_year: {
         userProfileId: data.userProfileId,
-        leaveTypeId: data.leaveTypeId,
+        leaveType,
         year: data.year,
       },
     },
@@ -39,7 +58,7 @@ const createLeaveBalance = async (
   return await prisma.leaveBalance.create({
     data: {
       userProfileId: data.userProfileId,
-      leaveTypeId: data.leaveTypeId,
+      leaveType,
       year: data.year,
       totalDays: data.totalDays,
       remainingDays: data.totalDays,
@@ -64,8 +83,8 @@ const getAllLeaveBalances = async (
     conditions.push({ userProfileId: queryParams.userProfileId });
   }
 
-  if (queryParams.leaveTypeId) {
-    conditions.push({ leaveTypeId: queryParams.leaveTypeId });
+  if (queryParams.leaveType) {
+    conditions.push({ leaveType: queryParams.leaveType });
   }
 
   if (queryParams.year) {
@@ -95,14 +114,6 @@ const getAllLeaveBalances = async (
           },
         },
       },
-      leaveType: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          color: true,
-        },
-      },
     },
   });
 
@@ -111,7 +122,7 @@ const getAllLeaveBalances = async (
   });
 
   return {
-    result,
+    result: result.map(mapBalance),
     meta: {
       page,
       limit,
@@ -143,52 +154,36 @@ const getUserLeaveBalances = async (
           },
         },
       },
-      leaveType: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          color: true,
-        },
-      },
     },
     orderBy: {
-      leaveType: {
-        name: "asc",
-      },
+      leaveType: "asc",
     },
   });
 
-  return balances;
+  return balances.map(mapBalance);
 };
 
 const getSingleLeaveBalance = async (
   id: string
 ): Promise<ILeaveBalanceWithRelations | null> => {
-  return await prisma.leaveBalance.findUnique({
-    where: { id },
-    include: {
-      userProfile: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+  return await prisma.leaveBalance
+    .findUnique({
+      where: { id },
+      include: {
+        userProfile: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
         },
       },
-      leaveType: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          color: true,
-        },
-      },
-    },
-  });
+    })
+    .then((balance) => (balance ? mapBalance(balance) : null));
 };
 
 const updateLeaveBalance = async (
@@ -241,32 +236,30 @@ const allocateAnnualBalance = async (
   userProfileId: string,
   year: number
 ): Promise<ILeaveBalance[]> => {
-  const activeLeaveTypes = await prisma.leaveType.findMany({
-    where: { isActive: true },
-  });
-
   const balancesToCreate: ICreateLeaveBalance[] = [];
 
-  for (const leaveType of activeLeaveTypes) {
-    if (leaveType.defaultDaysPerYear > 0) {
-      const existingBalance = await prisma.leaveBalance.findUnique({
-        where: {
-          userProfileId_leaveTypeId_year: {
-            userProfileId,
-            leaveTypeId: leaveType.id,
-            year,
-          },
-        },
-      });
+  for (const leaveType of leaveTypeValues) {
+    const config = LEAVE_TYPE_CONFIG[leaveType];
 
-      if (!existingBalance) {
-        balancesToCreate.push({
+    if (config.defaultDaysPerYear <= 0) continue;
+
+    const existingBalance = await prisma.leaveBalance.findUnique({
+      where: {
+        userProfileId_leaveType_year: {
           userProfileId,
-          leaveTypeId: leaveType.id,
+          leaveType,
           year,
-          totalDays: leaveType.defaultDaysPerYear,
-        });
-      }
+        },
+      },
+    });
+
+    if (!existingBalance) {
+      balancesToCreate.push({
+        userProfileId,
+        leaveType,
+        year,
+        totalDays: config.defaultDaysPerYear,
+      });
     }
   }
 
@@ -329,48 +322,22 @@ const getEmployeesLeaveSummary = async (
     },
   });
 
-  // Get leave balances for all employees for the given year
+  const employeeIdList = userProfileId
+    ? [userProfileId]
+    : employees.map((emp) => emp.id);
+
   const balances = await prisma.leaveBalance.findMany({
     where: {
       year: yearFilter,
-      userProfileId: userProfileId
-        ? userProfileId
-        : { in: employees.map((emp) => emp.id) },
-    },
-    include: {
-      leaveType: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
+      userProfileId: { in: employeeIdList },
     },
   });
 
-  // Aggregate balances by employee
-  const summaryMap = new Map<
-    string,
-    {
-      employeeName: string;
-      employeeEmail: string;
-      totalUsedDays: number;
-      totalRemainingDays: number;
-      totalDays: number;
-      leaveBreakdown: Array<{
-        leaveTypeId: string;
-        leaveTypeName: string;
-        leaveTypeColor: string | null;
-        usedDays: number;
-        remainingDays: number;
-        totalDays: number;
-      }>;
-    }
-  >();
+  const summaryMap = new Map<string, IEmployeeLeaveSummary>();
 
-  // Initialize map with all employees
   employees.forEach((emp) => {
     summaryMap.set(emp.id, {
+      userProfileId: emp.id,
       employeeName: emp.user.name,
       employeeEmail: emp.user.email,
       totalUsedDays: 0,
@@ -380,13 +347,10 @@ const getEmployeesLeaveSummary = async (
     });
   });
 
-  // Get approved leave applications for the year to calculate actual used days
   const approvedLeaves = await prisma.leaveApplication.findMany({
     where: {
       status: "APPROVED",
-      userProfileId: userProfileId
-        ? userProfileId
-        : { in: employees.map((emp) => emp.id) },
+      userProfileId: { in: employeeIdList },
       startDate: {
         gte: new Date(`${yearFilter}-01-01`),
         lt: new Date(`${yearFilter + 1}-01-01`),
@@ -394,108 +358,69 @@ const getEmployeesLeaveSummary = async (
     },
     select: {
       userProfileId: true,
-      leaveTypeId: true,
+      leaveType: true,
       totalDays: true,
-      leaveType: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
     },
   });
 
-  // Create a map to track used days by employee and leave type from approved leaves
-  const usedDaysMap = new Map<
-    string,
-    Map<
-      string,
-      {
-        usedDays: number;
-        leaveTypeName: string;
-        leaveTypeColor: string | null;
-      }
-    >
-  >();
-
+  const usedDaysMap = new Map<string, Map<LeaveType, number>>();
   approvedLeaves.forEach((leave) => {
     if (!usedDaysMap.has(leave.userProfileId)) {
       usedDaysMap.set(leave.userProfileId, new Map());
     }
     const employeeUsedDays = usedDaysMap.get(leave.userProfileId)!;
-    if (!employeeUsedDays.has(leave.leaveTypeId)) {
-      employeeUsedDays.set(leave.leaveTypeId, {
-        usedDays: 0,
-        leaveTypeName: leave.leaveType.name,
-        leaveTypeColor: leave.leaveType.color,
-      });
-    }
-    const typeUsedDays = employeeUsedDays.get(leave.leaveTypeId)!;
-    typeUsedDays.usedDays += leave.totalDays;
+    employeeUsedDays.set(
+      leave.leaveType,
+      (employeeUsedDays.get(leave.leaveType) ?? 0) + leave.totalDays
+    );
   });
 
-  // Aggregate balances and calculate actual used/remaining days
   balances.forEach((balance) => {
     const summary = summaryMap.get(balance.userProfileId);
-    if (summary) {
-      // Use actual used days from approved leaves if available, otherwise use balance.usedDays
-      const employeeUsedDays = usedDaysMap.get(balance.userProfileId);
-      const typeUsedDays = employeeUsedDays?.get(balance.leaveTypeId);
-      const actualUsedDays = typeUsedDays?.usedDays ?? balance.usedDays;
-      // Ensure remaining days doesn't go negative (in case approved leaves exceed allocated balance)
-      const actualRemainingDays = Math.max(
-        0,
-        balance.totalDays - actualUsedDays
+    if (!summary) return;
+
+    const meta = LEAVE_TYPE_CONFIG[balance.leaveType];
+    const actualUsedDays =
+      usedDaysMap.get(balance.userProfileId)?.get(balance.leaveType) ??
+      balance.usedDays;
+    const actualRemainingDays = Math.max(0, balance.totalDays - actualUsedDays);
+
+    summary.totalUsedDays += actualUsedDays;
+    summary.totalRemainingDays += actualRemainingDays;
+    summary.totalDays += balance.totalDays;
+    summary.leaveBreakdown.push({
+      leaveType: balance.leaveType,
+      leaveTypeMeta: meta,
+      usedDays: actualUsedDays,
+      remainingDays: actualRemainingDays,
+      totalDays: balance.totalDays,
+    });
+  });
+
+  usedDaysMap.forEach((types, employee) => {
+    const summary = summaryMap.get(employee);
+    if (!summary) return;
+
+    types.forEach((usedDays, leaveType) => {
+      const alreadyExists = summary.leaveBreakdown.some(
+        (bd) => bd.leaveType === leaveType
       );
+      if (alreadyExists) return;
 
-      summary.totalUsedDays += actualUsedDays;
-      summary.totalRemainingDays += actualRemainingDays;
-      summary.totalDays += balance.totalDays;
+      summary.totalUsedDays += usedDays;
       summary.leaveBreakdown.push({
-        leaveTypeId: balance.leaveTypeId,
-        leaveTypeName: balance.leaveType.name,
-        leaveTypeColor: balance.leaveType.color,
-        usedDays: actualUsedDays,
-        remainingDays: actualRemainingDays,
-        totalDays: balance.totalDays,
+        leaveType,
+        leaveTypeMeta: LEAVE_TYPE_CONFIG[leaveType],
+        usedDays,
+        remainingDays: 0,
+        totalDays: 0,
       });
-    }
+    });
   });
 
-  // Handle employees with approved leaves but no balance records
-  usedDaysMap.forEach((employeeTypes, empId) => {
-    const summary = summaryMap.get(empId);
-    if (summary) {
-      employeeTypes.forEach((typeData, typeId) => {
-        // Only add if not already in breakdown (from balances)
-        const alreadyExists = summary.leaveBreakdown.some(
-          (bd) => bd.leaveTypeId === typeId
-        );
-        if (!alreadyExists) {
-          // This employee has approved leaves but no balance record
-          // We'll still show the used days
-          const usedDays = typeData.usedDays;
-          summary.totalUsedDays += usedDays;
-          summary.leaveBreakdown.push({
-            leaveTypeId: typeId,
-            leaveTypeName: typeData.leaveTypeName,
-            leaveTypeColor: typeData.leaveTypeColor,
-            usedDays: usedDays,
-            remainingDays: 0,
-            totalDays: 0, // No balance allocated
-          });
-        }
-      });
-    }
-  });
-
-  // Convert map to array and recalculate totalRemainingDays as totalDays - totalUsedDays for accuracy
-  let result: IEmployeeLeaveSummary[] = Array.from(summaryMap.entries()).map(
-    ([userProfileId, data]) => ({
-      userProfileId,
+  let result: IEmployeeLeaveSummary[] = Array.from(summaryMap.values()).map(
+    (data) => ({
       ...data,
-      // Recalculate remaining days to ensure accuracy: total - used
       totalRemainingDays: Math.max(0, data.totalDays - data.totalUsedDays),
     })
   );
@@ -543,30 +468,20 @@ const allocateYearlyLeaveForAllEmployees = async (
   updated: number;
   totalEmployees: number;
 }> => {
-  // Get the primary leave type (prefer "Annual Leave", fallback to first active)
-  let primaryLeaveType = await prisma.leaveType.findFirst({
-    where: {
-      name: {
-        contains: "Annual",
-        mode: "insensitive",
-      },
-      isActive: true,
-    },
-  });
-
-  if (!primaryLeaveType) {
-    primaryLeaveType = await prisma.leaveType.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: "asc" },
-    });
-  }
+  const preferredType = leaveTypeValues.find(
+    (type) => type === LeaveType.CASUAL
+  );
+  const primaryLeaveType = preferredType ?? leaveTypeValues[0];
 
   if (!primaryLeaveType) {
     throw new HTTPError(
-      httpStatus.NOT_FOUND,
-      "No active leave type found. Please create a leave type first."
+      httpStatus.BAD_REQUEST,
+      "No leave types are configured. Please define leave types in configuration."
     );
   }
+
+  const allocationDays =
+    totalDays ?? LEAVE_TYPE_CONFIG[primaryLeaveType].defaultDaysPerYear;
 
   // Get all employees with EMPLOYEE role
   const employees = await prisma.userProfile.findMany({
@@ -601,9 +516,9 @@ const allocateYearlyLeaveForAllEmployees = async (
   for (const employee of employees) {
     const existingBalance = await prisma.leaveBalance.findUnique({
       where: {
-        userProfileId_leaveTypeId_year: {
+        userProfileId_leaveType_year: {
           userProfileId: employee.id,
-          leaveTypeId: primaryLeaveType.id,
+          leaveType: primaryLeaveType,
           year,
         },
       },
@@ -612,12 +527,12 @@ const allocateYearlyLeaveForAllEmployees = async (
     if (existingBalance) {
       // Update existing balance
       const currentUsedDays = existingBalance.usedDays;
-      const newRemainingDays = Math.max(0, totalDays - currentUsedDays);
+      const newRemainingDays = Math.max(0, allocationDays - currentUsedDays);
 
       await prisma.leaveBalance.update({
         where: { id: existingBalance.id },
         data: {
-          totalDays,
+          totalDays: allocationDays,
           remainingDays: newRemainingDays,
         },
       });
@@ -627,10 +542,10 @@ const allocateYearlyLeaveForAllEmployees = async (
       await prisma.leaveBalance.create({
         data: {
           userProfileId: employee.id,
-          leaveTypeId: primaryLeaveType.id,
+          leaveType: primaryLeaveType,
           year,
-          totalDays,
-          remainingDays: totalDays,
+          totalDays: allocationDays,
+          remainingDays: allocationDays,
           usedDays: 0,
         },
       });

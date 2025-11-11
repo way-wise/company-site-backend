@@ -4,7 +4,6 @@ import { authRoutes } from "../modules/auth/auth.routes";
 import { ChatRoutes } from "../modules/chat/chat.routes";
 import { leaveRoutes } from "../modules/leave/leave.routes";
 import { leaveBalanceRoutes } from "../modules/leaveBalance/leaveBalance.routes";
-import { leaveTypeRoutes } from "../modules/leaveType/leaveType.routes";
 import { MilestoneRoutes } from "../modules/milestone/milestone.routes";
 import { permissionRoutes } from "../modules/permission/permission.routes";
 import { ProjectRoutes } from "../modules/project/project.routes";
@@ -39,10 +38,6 @@ const moduleRoutes = [
   {
     path: "/leaves",
     route: leaveRoutes,
-  },
-  {
-    path: "/leave-types",
-    route: leaveTypeRoutes,
   },
   {
     path: "/leave-balance",

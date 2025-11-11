@@ -1,2 +1,1 @@
-export const validParams = ["userProfileId", "leaveTypeId", "year"];
-
+export const validParams = ["userProfileId", "leaveType", "year"];

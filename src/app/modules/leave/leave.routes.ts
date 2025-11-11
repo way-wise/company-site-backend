@@ -34,25 +34,25 @@ router.patch(
 // Admin routes
 router.get(
   "/all",
-  permissionGuard("view_team_leaves"), // Admin permission to view all leaves
+  permissionGuard("view_team_leaves", "approve_leave"),
   LeaveController.getAllLeaves
 );
 
 router.get(
   "/stats",
-  permissionGuard("view_team_leaves"), // Admin permission to view stats
+  permissionGuard("view_team_leaves", "approve_leave"),
   LeaveController.getLeaveStats
 );
 
 router.get(
   "/calendar",
-  permissionGuard("view_team_leaves"), // Admin permission to view calendar
+  permissionGuard("view_team_leaves", "approve_leave"),
   LeaveController.getLeaveCalendar
 );
 
 router.get(
   "/:id",
-  permissionGuard("read_leave", "view_team_leaves"), // Allow both own leaves and admin view
+  permissionGuard("read_leave", "view_team_leaves", "approve_leave"),
   validateRequest(leaveValidation.leaveParamsSchema),
   LeaveController.getSingleLeave
 );

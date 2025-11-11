@@ -28,7 +28,7 @@ const applyForLeave = catchAsync(
 
     const result = await LeaveService.createLeaveApplication({
       employeeId: userProfile.id, // Maps to userProfileId internally
-      leaveTypeId: req.body.leaveTypeId,
+      leaveType: req.body.leaveType,
       startDate: req.body.startDate,
       endDate: req.body.endDate,
       reason: req.body.reason,
@@ -279,7 +279,7 @@ const getLeaveCalendar = catchAsync(async (req: Request, res: Response) => {
     "startDate",
     "endDate",
     "userProfileId",
-    "leaveTypeId",
+    "leaveType",
   ]);
 
   const result = await LeaveService.getLeaveCalendar(validQueryParams);

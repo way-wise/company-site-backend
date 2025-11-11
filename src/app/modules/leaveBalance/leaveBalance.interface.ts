@@ -1,7 +1,10 @@
+import { LeaveType } from "@prisma/client";
+import { LeaveTypeConfig } from "../leave/leaveType.config";
+
 export interface ILeaveBalance {
   id: string;
   userProfileId: string;
-  leaveTypeId: string;
+  leaveType: LeaveType;
   year: number;
   totalDays: number;
   usedDays: number;
@@ -12,7 +15,7 @@ export interface ILeaveBalance {
 
 export interface ICreateLeaveBalance {
   userProfileId: string;
-  leaveTypeId: string;
+  leaveType: LeaveType;
   year: number;
   totalDays: number;
 }
@@ -23,6 +26,7 @@ export interface IUpdateLeaveBalance {
 }
 
 export interface ILeaveBalanceWithRelations extends ILeaveBalance {
+  leaveTypeMeta: LeaveTypeConfig;
   userProfile: {
     id: string;
     userId: string;
@@ -32,17 +36,11 @@ export interface ILeaveBalanceWithRelations extends ILeaveBalance {
       email: string;
     };
   };
-  leaveType: {
-    id: string;
-    name: string;
-    description: string | null;
-    color: string | null;
-  };
 }
 
 export type ILeaveBalanceFilterParams = {
   userProfileId?: string;
-  leaveTypeId?: string;
+  leaveType?: LeaveType;
   year?: number;
 };
 
@@ -54,12 +52,10 @@ export interface IEmployeeLeaveSummary {
   totalRemainingDays: number;
   totalDays: number;
   leaveBreakdown: Array<{
-    leaveTypeId: string;
-    leaveTypeName: string;
-    leaveTypeColor: string | null;
+    leaveType: LeaveType;
+    leaveTypeMeta: LeaveTypeConfig;
     usedDays: number;
     remainingDays: number;
     totalDays: number;
   }>;
 }
-

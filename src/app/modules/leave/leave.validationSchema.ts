@@ -1,9 +1,10 @@
+import { LeaveType } from "@prisma/client";
 import { z } from "zod";
 
 const createLeaveApplicationSchema = z.object({
   body: z
     .object({
-      leaveTypeId: z.string().min(1, "Leave type is required"),
+      leaveType: z.nativeEnum(LeaveType).optional(),
       startDate: z.string().refine(
         (date) => {
           const parsedDate = new Date(date);
@@ -60,7 +61,9 @@ const leaveCalendarQuerySchema = z.object({
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     userProfileId: z.string().optional(),
-    leaveTypeId: z.string().optional(),
+    leaveType: z
+      .union([z.nativeEnum(LeaveType), z.array(z.nativeEnum(LeaveType))])
+      .optional(),
   }),
 });
 
