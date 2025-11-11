@@ -154,11 +154,12 @@ const getEmployeesLeaveSummary = catchAsync(
     let targetUserProfileId: string | undefined = undefined;
 
     // Check if user has view_team_leaves permission
-    const hasViewTeamLeaves = await permissionHelper.hasAnyPermission(user.id, [
-      "view_team_leaves",
-    ]);
+    const hasTeamViewPermission = await permissionHelper.hasAnyPermission(
+      user.id,
+      ["view_team_leaves", "approve_leave"]
+    );
 
-    if (!hasViewTeamLeaves && userProfile) {
+    if (!hasTeamViewPermission && userProfile) {
       // User can only see their own data
       targetUserProfileId = userProfile.id;
     }

@@ -14,7 +14,7 @@ router.get(
 
 router.get(
   "/summary",
-  permissionGuard("read_leave", "view_team_leaves"),
+  permissionGuard("read_leave", "view_team_leaves", "approve_leave"),
   LeaveBalanceController.getEmployeesLeaveSummary
 );
 
