@@ -1,6 +1,7 @@
 import express from "express";
 import authGuard from "../../middlewares/authGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
+import { fileUploader } from "../../../helpers/fileUploader";
 import { ChatController } from "./chat.controller";
 import { chatValidationSchemas } from "./chat.validationSchema";
 
@@ -23,6 +24,14 @@ router.get("/conversations/:id", ChatController.getSingleConversation);
 router.get(
   "/conversations/:id/messages",
   ChatController.getConversationMessages
+);
+
+router.get("/conversations/:id/media", ChatController.getConversationMedia);
+
+router.post(
+  "/conversations/:id/messages",
+  fileUploader.upload.array("files", 5),
+  ChatController.createMessage
 );
 
 router.post(

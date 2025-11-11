@@ -13,7 +13,28 @@ import {
   IAddParticipantsPayload,
   IConversationFilterParams,
   ICreateConversationPayload,
+  IChatAttachment,
+  IConversationMediaItem,
+  ICreateMessagePayload,
 } from "./chat.interface";
+
+type MessageWithSender = Prisma.MessageGetPayload<{
+  include: {
+    sender: {
+      select: {
+        id: true;
+        user: {
+          select: {
+            id: true;
+            name: true;
+            email: true;
+          };
+        };
+        profilePhoto: true;
+      };
+    };
+  };
+}>;
 
 const createConversationIntoDB = async (
   currentUserProfileId: string,
@@ -250,6 +271,125 @@ const createConversationIntoDB = async (
   }
 
   return conversation;
+};
+
+const fetchConversationParticipantIds = async (conversationId: string) => {
+  const participants = await prisma.conversationParticipant.findMany({
+    where: { conversationId },
+    select: { userProfileId: true },
+  });
+
+  return participants.map((participant) => participant.userProfileId);
+};
+
+const ensureConversationParticipant = async (
+  conversationId: string,
+  userProfileId: string
+) => {
+  const participantIds = await fetchConversationParticipantIds(conversationId);
+
+  if (!participantIds.includes(userProfileId)) {
+    throw new HTTPError(
+      httpStatus.FORBIDDEN,
+      "You are not a participant in this conversation"
+    );
+  }
+
+  return participantIds;
+};
+
+const broadcastMessageEvents = async (
+  conversationId: string,
+  participantIds: string[],
+  message: MessageWithSender
+) => {
+  try {
+    const io = getIO();
+    io.to(conversationId).emit("message:new", message);
+
+    participantIds.forEach((participantId) => {
+      io.to(`user:${participantId}`).emit("conversation:updated", {
+        conversationId,
+        lastMessage: message,
+        updatedAt: new Date(),
+      });
+    });
+  } catch (error) {
+    console.error("Error emitting message events:", error);
+  }
+};
+
+const createMessageRecord = async (
+  conversationId: string,
+  senderId: string,
+  payload: ICreateMessagePayload
+): Promise<{ message: MessageWithSender; participantIds: string[] }> => {
+  const trimmedContent = payload.content?.trim() ?? "";
+  const attachments =
+    payload.attachments && payload.attachments.length > 0
+      ? payload.attachments
+      : undefined;
+
+  if (!trimmedContent && !attachments) {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "Message content or attachments are required"
+    );
+  }
+
+  const participantIds = await ensureConversationParticipant(
+    conversationId,
+    senderId
+  );
+
+  const serializedAttachments = attachments
+    ? (attachments.map((attachment) => ({ ...attachment })) as unknown as Prisma.JsonArray)
+    : undefined;
+
+  const message = await prisma.message.create({
+    data: {
+      conversationId,
+      senderId,
+      content: trimmedContent,
+      attachments: serializedAttachments,
+    },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          profilePhoto: true,
+        },
+      },
+    },
+  });
+
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { updatedAt: new Date() },
+  });
+
+  return { message, participantIds };
+};
+
+const createMessage = async (
+  conversationId: string,
+  senderId: string,
+  payload: ICreateMessagePayload
+): Promise<MessageWithSender> => {
+  const { message, participantIds } = await createMessageRecord(
+    conversationId,
+    senderId,
+    payload
+  );
+  await broadcastMessageEvents(conversationId, participantIds, message);
+  return message;
 };
 
 const getUserConversationsFromDB = async (
@@ -517,6 +657,88 @@ const getConversationMessagesFromDB = async (
     },
     result: messages.reverse(), // Reverse to show oldest first in UI
   };
+};
+
+const getConversationMediaFromDB = async (
+  conversationId: string,
+  currentUserProfileId: string
+): Promise<IConversationMediaItem[]> => {
+  await ensureConversationParticipant(conversationId, currentUserProfileId);
+
+  const messages = await prisma.message.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      conversationId: true,
+      senderId: true,
+      createdAt: true,
+      attachments: true,
+    },
+  });
+
+  const mediaItems: IConversationMediaItem[] = [];
+
+  messages.forEach((message) => {
+    if (!Array.isArray(message.attachments)) {
+      return;
+    }
+
+    (message.attachments as unknown[]).forEach((attachment, index) => {
+      if (!attachment || typeof attachment !== "object") {
+        return;
+      }
+
+      const parsed = attachment as Partial<IChatAttachment>;
+
+      if (typeof parsed.url !== "string") {
+        return;
+      }
+
+      const mimeType =
+        typeof parsed.mimeType === "string"
+          ? parsed.mimeType
+          : "application/octet-stream";
+
+      const attachmentType =
+        parsed.type === "image" || parsed.type === "document"
+          ? parsed.type
+          : mimeType.startsWith("image/")
+          ? "image"
+          : "document";
+
+      const uploadedAt =
+        typeof parsed.uploadedAt === "string"
+          ? parsed.uploadedAt
+          : message.createdAt.toISOString();
+
+      mediaItems.push({
+        id:
+          typeof parsed.id === "string"
+            ? parsed.id
+            : `${message.id}-${index}`,
+        key: typeof parsed.key === "string" ? parsed.key : "",
+        url: parsed.url,
+        name:
+          typeof parsed.name === "string"
+            ? parsed.name
+            : `attachment-${index + 1}`,
+        mimeType,
+        size: typeof parsed.size === "number" ? parsed.size : 0,
+        type: attachmentType,
+        uploadedAt,
+        messageId: message.id,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        messageCreatedAt: message.createdAt.toISOString(),
+      });
+    });
+  });
+
+  return mediaItems.sort(
+    (a, b) =>
+      new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+  );
 };
 
 const addParticipantsToConversation = async (
@@ -862,6 +1084,7 @@ const deleteMessageFromDB = async (
     data: {
       isDeleted: true,
       content: "This message has been deleted",
+      attachments: Prisma.JsonNull,
     },
   });
 
@@ -876,6 +1099,9 @@ export const ChatService = {
   getUserConversationsFromDB,
   getSingleConversationFromDB,
   getConversationMessagesFromDB,
+  getConversationMediaFromDB,
+  createMessage,
+  ensureConversationParticipant,
   addParticipantsToConversation,
   removeParticipantFromConversation,
   editMessageInDB,

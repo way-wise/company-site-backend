@@ -1,12 +1,14 @@
 import { Server as SocketIOServer } from "socket.io";
 import prisma from "../shared/prismaClient";
+import { ChatService } from "../app/modules/chat/chat.service";
+import { IChatAttachment } from "../app/modules/chat/chat.interface";
 import { AuthenticatedSocket } from "./index";
 
 // Socket event interfaces - exported for type safety
 export interface SendMessageData {
   conversationId: string;
   content: string;
-  attachments?: unknown[];
+  attachments?: IChatAttachment[];
 }
 
 export interface EditMessageData {
@@ -100,69 +102,13 @@ export const registerChatHandlers = (
   socket.on("message:send", async (data: SendMessageData) => {
     try {
       const { conversationId, content, attachments } = data;
+      const attachmentPayload = Array.isArray(attachments)
+        ? attachments
+        : undefined;
 
-      // Verify user is a participant
-      const participant = await prisma.conversationParticipant.findFirst({
-        where: {
-          conversationId,
-          userProfileId: socket.userProfileId,
-        },
-      });
-
-      if (!participant) {
-        socket.emit("error", { message: "Not authorized to send messages" });
-        return;
-      }
-
-      // Create message in database
-      const message = await prisma.message.create({
-        data: {
-          conversationId,
-          senderId: socket.userProfileId,
-          content,
-          attachments: attachments as any,
-        },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              profilePhoto: true,
-            },
-          },
-        },
-      });
-
-      // Update conversation's updatedAt
-      await prisma.conversation.update({
-        where: { id: conversationId },
-        data: { updatedAt: new Date() },
-      });
-
-      // Broadcast to all participants in the conversation room
-      io.to(conversationId).emit("message:new", message);
-
-      // Also notify all participants in their personal rooms for conversation list updates
-      const allParticipants = await prisma.conversationParticipant.findMany({
-        where: { conversationId },
-        select: { userProfileId: true },
-      });
-
-      allParticipants.forEach((participant: any) => {
-        io.to(`user:${participant.userProfileId}`).emit(
-          "conversation:updated",
-          {
-            conversationId,
-            lastMessage: message,
-            updatedAt: new Date(),
-          }
-        );
+      await ChatService.createMessage(conversationId, socket.userProfileId, {
+        content,
+        attachments: attachmentPayload,
       });
 
       console.log(

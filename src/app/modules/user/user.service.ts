@@ -1,7 +1,7 @@
 import { Prisma, UserProfile } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
-import uploadImageS3 from "../../../helpers/s3Uploader";
+import { uploadFileToBlob } from "../../../helpers/blobUploader";
 import meiliClient from "../../../shared/meilisearch";
 import prisma from "../../../shared/prismaClient";
 import {
@@ -190,8 +190,10 @@ const getSingleUserFromDB = async (id: string) => {
 
 const createAdmin = async (req: any): Promise<UserProfile> => {
   if (req.file) {
-    const uploadedFileUrl = await uploadImageS3(req.file);
-    req.body.admin.profilePhoto = uploadedFileUrl;
+    const uploadResult = await uploadFileToBlob(req.file, {
+      prefix: "user-profiles",
+    });
+    req.body.admin.profilePhoto = uploadResult.url;
   }
 
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -230,11 +232,13 @@ const createClient = async (req: any): Promise<UserProfile> => {
   try {
     // Handle file upload if present
     if (req.file) {
-      const uploadedFileUrl = await uploadImageS3(req.file);
-      if (!uploadedFileUrl) {
+      const uploadResult = await uploadFileToBlob(req.file, {
+        prefix: "user-profiles",
+      });
+      if (!uploadResult?.url) {
         throw new Error("Failed to upload profile photo");
       }
-      req.body.client.profilePhoto = uploadedFileUrl;
+      req.body.client.profilePhoto = uploadResult.url;
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -294,11 +298,13 @@ const createEmployee = async (req: any): Promise<UserProfile> => {
   try {
     // Handle file upload if present
     if (req.file) {
-      const uploadedFileUrl = await uploadImageS3(req.file);
-      if (!uploadedFileUrl) {
+      const uploadResult = await uploadFileToBlob(req.file, {
+        prefix: "user-profiles",
+      });
+      if (!uploadResult?.url) {
         throw new Error("Failed to upload profile photo");
       }
-      req.body.employee.profilePhoto = uploadedFileUrl;
+      req.body.employee.profilePhoto = uploadResult.url;
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
