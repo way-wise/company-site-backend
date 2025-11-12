@@ -9,11 +9,11 @@ import { verifyAndFetchUser } from "../../helpers/authHelper";
 const authGuard = () => {
   return async (
     req: Request & { user?: any },
-    _res: Response,
+    res: Response,
     next: NextFunction
   ) => {
     try {
-      req.user = await verifyAndFetchUser(req);
+      req.user = await verifyAndFetchUser(req, res);
       next();
     } catch (error) {
       next(error);

@@ -53,9 +53,11 @@ const loginUser = async (payload: { email: string; password: string }) => {
     config.jwt.refresh_token_expires_in as string
   );
 
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
   await prisma.user.update({
     where: { id: userData.id },
-    data: { refreshToken },
+    data: { refreshToken: hashedRefreshToken },
   });
 
   const { password, ...userWithoutPassword } = userData;
@@ -89,7 +91,15 @@ const refreshToken = async (token: string) => {
     },
   });
 
-  if (userData.refreshToken !== token) {
+  const storedRefreshToken = userData.refreshToken;
+
+  if (!storedRefreshToken) {
+    throw new HTTPError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
+  }
+
+  const isRefreshTokenValid = await bcrypt.compare(token, storedRefreshToken);
+
+  if (!isRefreshTokenValid) {
     throw new HTTPError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
   }
 
@@ -99,7 +109,20 @@ const refreshToken = async (token: string) => {
     config.jwt.expires_in as string
   );
 
-  return { accessToken };
+  const newRefreshToken = jwtHelpers.generateToken(
+    { email: userData.email },
+    config.jwt.refresh_token_secret as Secret,
+    config.jwt.refresh_token_expires_in as string
+  );
+
+  const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: { refreshToken: hashedRefreshToken },
+  });
+
+  return { accessToken, refreshToken: newRefreshToken };
 };
 
 const getMe = async (user: VerifiedUser) => {

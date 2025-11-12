@@ -11,12 +11,12 @@ import { HTTPError } from "../errors/HTTPError";
 const roleGuard = (...roles: string[]) => {
   return async (
     req: Request & { user?: any },
-    _res: Response,
+    res: Response,
     next: NextFunction
   ) => {
     try {
       // Verify token and fetch user (reuses shared logic)
-      const user = await verifyAndFetchUser(req);
+      const user = await verifyAndFetchUser(req, res);
 
       // Check if user has any of the required roles
       if (roles.length > 0) {

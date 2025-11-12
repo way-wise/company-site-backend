@@ -10,12 +10,12 @@ import { HTTPError } from "../errors/HTTPError";
 const permissionGuard = (...permissions: string[]) => {
   return async (
     req: Request & { user?: any },
-    _res: Response,
+    res: Response,
     next: NextFunction
   ) => {
     try {
       // Verify token and fetch user (already includes permissions)
-      const user = await verifyAndFetchUser(req);
+      const user = await verifyAndFetchUser(req, res);
 
       // Check if user has any of the required permissions
       // Use permissions already fetched in verifyAndFetchUser to avoid duplicate query

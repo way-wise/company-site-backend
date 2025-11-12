@@ -7,15 +7,17 @@ const globalErrorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  console.dir("Came to global error handler");
-  console.log(err.name);
+  let statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+  let message = err.message || "Something went wrong";
 
-  // Use the error's statusCode if it exists, otherwise default to 500
-  const statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+  if (err.name === "TokenExpiredError") {
+    statusCode = httpStatus.UNAUTHORIZED;
+    message = "Access token expired. Please refresh your session.";
+  }
 
   res.status(statusCode).json({
     success: false,
-    message: err.message || "Something went wrong",
+    message,
     error: err,
   });
 };
