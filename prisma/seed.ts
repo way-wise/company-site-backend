@@ -103,6 +103,13 @@ async function main() {
       // Comment Management
       "read_comment",
       "delete_comment",
+
+      // Partner Management
+      "create_partner",
+      "read_partner",
+      "update_partner",
+      "delete_partner",
+      "toggle_partner_visibility",
     ];
 
     const adminPermissions = await prisma.permission.findMany({

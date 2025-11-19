@@ -5,6 +5,7 @@ import { ChatRoutes } from "../modules/chat/chat.routes";
 import { leaveRoutes } from "../modules/leave/leave.routes";
 import { leaveBalanceRoutes } from "../modules/leaveBalance/leaveBalance.routes";
 import { MilestoneRoutes } from "../modules/milestone/milestone.routes";
+import { PartnerRoutes } from "../modules/partner/partner.routes";
 import { PaymentRoutes } from "../modules/payment/payment.routes";
 import { permissionRoutes } from "../modules/permission/permission.routes";
 import { ProjectRoutes } from "../modules/project/project.routes";
@@ -67,6 +68,10 @@ const moduleRoutes = [
   {
     path: "/payment",
     route: PaymentRoutes,
+  },
+  {
+    path: "/partner",
+    route: PartnerRoutes,
   },
 ];
 
