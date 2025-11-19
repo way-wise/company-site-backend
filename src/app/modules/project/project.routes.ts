@@ -15,7 +15,7 @@ router.post(
 
 router.get(
   "/",
-  permissionGuard("view_all_projects"),
+  permissionGuard("view_all_projects", "read_project"),
   ProjectController.getAllProjects
 );
 
