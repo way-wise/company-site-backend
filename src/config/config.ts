@@ -21,4 +21,8 @@ export default {
   cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET,
   blob_read_write_token: process.env.BLOB_READ_WRITE_TOKEN,
   blob_read_only_token: process.env.BLOB_READ_ONLY_TOKEN,
+  stripe: {
+    secret_key: process.env.STRIPE_SECRET_KEY,
+    publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
+  },
 };

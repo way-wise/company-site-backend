@@ -71,6 +71,7 @@ model User {
   refreshToken             String?
   userProfile              UserProfile?
   roles                    UserRoleAssignment[]
+  paymentMethods           PaymentMethod[]
 
   @@index([status])
   @@map("users")
@@ -438,4 +439,23 @@ enum ConversationType {
   DIRECT
   GROUP
   PROJECT
+}
+
+model PaymentMethod {
+  id                    String   @id @default(ulid())
+  userId                String
+  stripePaymentMethodId String   @unique
+  stripeCustomerId      String?
+  cardLast4             String
+  cardBrand             String
+  cardExpMonth          Int
+  cardExpYear           Int
+  isDefault             Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripePaymentMethodId])
+  @@map("payment_methods")
 }
