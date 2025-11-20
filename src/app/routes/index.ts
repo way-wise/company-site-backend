@@ -9,6 +9,8 @@ import { PartnerRoutes } from "../modules/partner/partner.routes";
 import { PaymentRoutes } from "../modules/payment/payment.routes";
 import { permissionRoutes } from "../modules/permission/permission.routes";
 import { ProjectRoutes } from "../modules/project/project.routes";
+import { ProjectNoteRoutes } from "../modules/projectNote/projectNote.routes";
+import { ProjectFileRoutes } from "../modules/projectFile/projectFile.routes";
 import { roleRoutes } from "../modules/role/role.routes";
 import { ServiceRoutes } from "../modules/service/service.routes";
 import { TaskRoutes } from "../modules/task/task.routes";
@@ -56,6 +58,14 @@ const moduleRoutes = [
   {
     path: "/projects",
     route: ProjectRoutes,
+  },
+  {
+    path: "/project-notes",
+    route: ProjectNoteRoutes,
+  },
+  {
+    path: "/project-files",
+    route: ProjectFileRoutes,
   },
   {
     path: "/milestones",

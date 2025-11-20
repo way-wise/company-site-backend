@@ -108,6 +108,8 @@ model UserProfile {
   tasks                     Task[]
   conversationParticipants  ConversationParticipant[]
   messages                  Message[]
+  projectNotes              ProjectNote[]
+  projectFiles              ProjectFile[]
   user                      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
@@ -123,6 +125,8 @@ model Project {
   userProfileId String
   milestones    Milestone[]
   conversations Conversation[]
+  notes         ProjectNote[]
+  files         ProjectFile[]
   userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@index([status])
@@ -507,4 +511,38 @@ model Partner {
 
   @@index([isShow])
   @@map("partners")
+}
+
+model ProjectNote {
+  id          String      @id @default(ulid())
+  projectId   String
+  content     String      @default("")
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@unique([projectId])
+  @@index([projectId])
+  @@index([createdBy])
+  @@map("project_notes")
+}
+
+model ProjectFile {
+  id          String      @id @default(ulid())
+  projectId   String
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  uploadedBy  String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader    UserProfile @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([uploadedBy])
+  @@map("project_files")
 }
