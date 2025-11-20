@@ -1,4 +1,4 @@
 {
-  "buildCommand": "npm run build && npm run migrate:deploy && npm run seed",
-  "installCommand": "npm install"
+  "buildCommand": "yarn build && yarn migrate:deploy && yarn seed",
+  "installCommand": "yarn install"
 }
