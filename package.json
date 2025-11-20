@@ -14,7 +14,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "studio": "npx prisma studio",
     "seed": "ts-node prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "deploy": "yarn build && yarn migrate:deploy && yarn seed"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

@@ -1,4 +1,0 @@
-{
-  "buildCommand": "yarn build && yarn migrate:deploy && yarn seed",
-  "installCommand": "yarn install"
-}
