@@ -1,0 +1,4 @@
+{
+  "buildCommand": "npm run build && npm run migrate:deploy && npm run seed",
+  "installCommand": "npm install"
+}
