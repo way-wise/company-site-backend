@@ -46,6 +46,10 @@ const createSetupIntent = async (
   const setupIntent = await stripe.setupIntents.create({
     customer: stripeCustomerId,
     payment_method_types: ["card"],
+    automatic_payment_methods: {
+      enabled: true,
+      allow_redirects: "never",
+    },
   });
 
   return {
@@ -284,11 +288,357 @@ const setDefaultPaymentMethod = async (
   return updated;
 };
 
+// Generate invoice number: INV-YYYY-XXXXX
+const generateInvoiceNumber = async (): Promise<string> => {
+  const year = new Date().getFullYear();
+  const prefix = `INV-${year}-`;
+
+  // Get the last invoice number for this year
+  const lastPayment = await prisma.milestonePayment.findFirst({
+    where: {
+      invoiceNumber: {
+        startsWith: prefix,
+      },
+    },
+    orderBy: {
+      invoiceNumber: "desc",
+    },
+  });
+
+  let sequence = 1;
+  if (lastPayment) {
+    const lastSequence = parseInt(
+      lastPayment.invoiceNumber.replace(prefix, ""),
+      10
+    );
+    if (!isNaN(lastSequence)) {
+      sequence = lastSequence + 1;
+    }
+  }
+
+  // Format sequence as 5-digit number (00001, 00002, etc.)
+  const sequenceStr = sequence.toString().padStart(5, "0");
+  return `${prefix}${sequenceStr}`;
+};
+
+const processMilestonePayment = async (
+  userId: string,
+  milestoneId: string
+) => {
+  // Validate milestone exists and belongs to user's project
+  const milestone = await prisma.milestone.findUnique({
+    where: { id: milestoneId },
+    include: {
+      project: {
+        include: {
+          userProfile: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!milestone) {
+    throw new HTTPError(httpStatus.NOT_FOUND, "Milestone not found");
+  }
+
+  // Check if milestone belongs to user's project
+  if (milestone.project.userProfile.userId !== userId) {
+    throw new HTTPError(
+      httpStatus.FORBIDDEN,
+      "You don't have permission to pay for this milestone"
+    );
+  }
+
+  // Check if milestone is already paid
+  if (milestone.paymentStatus === "PAID") {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "Milestone is already paid"
+    );
+  }
+
+  // Check if milestone has a cost
+  const costValue = milestone.cost ? Number(milestone.cost) : 0;
+  if (!milestone.cost || costValue <= 0) {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "Milestone does not have a valid cost"
+    );
+  }
+
+  // Get default payment method
+  const defaultPaymentMethod = await prisma.paymentMethod.findFirst({
+    where: {
+      userId,
+      isDefault: true,
+    },
+  });
+
+  if (!defaultPaymentMethod) {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "No default payment method found. Please add a payment method first."
+    );
+  }
+
+  try {
+    // Get or create Stripe customer
+    let stripeCustomerId = defaultPaymentMethod.stripeCustomerId;
+
+    if (!stripeCustomerId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+
+      if (!user) {
+        throw new HTTPError(httpStatus.NOT_FOUND, "User not found");
+      }
+
+      const stripeCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId,
+        },
+      });
+      stripeCustomerId = stripeCustomer.id;
+
+      // Update payment method with customer ID
+      await prisma.paymentMethod.update({
+        where: { id: defaultPaymentMethod.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    // Create PaymentIntent
+    const amountInCents = Math.round(costValue * 100);
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: "usd",
+      customer: stripeCustomerId,
+      payment_method: defaultPaymentMethod.stripePaymentMethodId,
+      confirm: true,
+      off_session: true,
+      description: `Payment for milestone: ${milestone.name}`,
+      metadata: {
+        milestoneId,
+        userId,
+      },
+    });
+
+    if (paymentIntent.status !== "succeeded") {
+      throw new HTTPError(
+        httpStatus.BAD_REQUEST,
+        `Payment failed: ${paymentIntent.status}. ${paymentIntent.last_payment_error?.message || ""}`
+      );
+    }
+
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Create payment record
+    const paymentRecord = await prisma.milestonePayment.create({
+      data: {
+        milestoneId,
+        userId,
+        amount: costValue,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeChargeId: paymentIntent.latest_charge as string | undefined,
+        paymentMethodId: defaultPaymentMethod.id,
+        status: paymentIntent.status,
+        invoiceNumber,
+      },
+    });
+
+    // Update milestone payment status
+    await prisma.milestone.update({
+      where: { id: milestoneId },
+      data: { paymentStatus: "PAID" },
+    });
+
+    // Fetch the complete payment record with relations
+    const completePayment = await prisma.milestonePayment.findUnique({
+      where: { id: paymentRecord.id },
+      include: {
+        milestone: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            cost: true,
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        paymentMethod: {
+          select: {
+            id: true,
+            cardLast4: true,
+            cardBrand: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return completePayment;
+  } catch (error) {
+    // If it's already an HTTPError, re-throw it
+    if (error instanceof HTTPError) {
+      throw error;
+    }
+    // If it's a Stripe error, convert it to HTTPError
+    if (error && typeof error === "object" && "type" in error) {
+      const stripeError = error as any;
+      throw new HTTPError(
+        httpStatus.BAD_REQUEST,
+        stripeError.message || "Payment processing failed"
+      );
+    }
+    // Generic error
+    throw new HTTPError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error instanceof Error ? error.message : "Payment processing failed"
+    );
+  }
+};
+
+const getMilestonePayments = async (milestoneId: string) => {
+  return await prisma.milestonePayment.findMany({
+    where: { milestoneId },
+    include: {
+      paymentMethod: {
+        select: {
+          id: true,
+          cardLast4: true,
+          cardBrand: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      paidAt: "desc",
+    },
+  });
+};
+
+const getUserPayments = async (userId: string) => {
+  return await prisma.milestonePayment.findMany({
+    where: { userId },
+    include: {
+      milestone: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          cost: true,
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      paymentMethod: {
+        select: {
+          id: true,
+          cardLast4: true,
+          cardBrand: true,
+        },
+      },
+    },
+    orderBy: {
+      paidAt: "desc",
+    },
+  });
+};
+
+const getPaymentInvoice = async (paymentId: string, userId: string) => {
+  const payment = await prisma.milestonePayment.findFirst({
+    where: {
+      id: paymentId,
+      userId,
+    },
+    include: {
+      milestone: {
+        include: {
+          project: {
+            include: {
+              userProfile: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      paymentMethod: {
+        select: {
+          id: true,
+          cardLast4: true,
+          cardBrand: true,
+          cardExpMonth: true,
+          cardExpYear: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!payment) {
+    throw new HTTPError(
+      httpStatus.NOT_FOUND,
+      "Payment not found or access denied"
+    );
+  }
+
+  return payment;
+};
+
 export const PaymentService = {
   createSetupIntent,
   attachPaymentMethod,
   getAllPaymentMethods,
   deletePaymentMethod,
   setDefaultPaymentMethod,
+  processMilestonePayment,
+  getMilestonePayments,
+  getUserPayments,
+  getPaymentInvoice,
 };
 

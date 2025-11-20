@@ -11,8 +11,40 @@ import { IMilestoneFilterParams } from "./milestone.interface";
 const createMilestoneIntoDB = async (
   data: Prisma.MilestoneCreateInput
 ): Promise<Milestone> => {
+  // Get projectId from the data
+  const projectId = 
+    typeof data.project?.connect?.id === "string" 
+      ? data.project.connect.id 
+      : (data as any).projectId;
+
+  if (!projectId) {
+    throw new Error("Project ID is required");
+  }
+
+  // Calculate the next index for this project (starting at 1)
+  const maxIndexResult = await prisma.milestone.findFirst({
+    where: { projectId },
+    orderBy: { index: "desc" },
+    select: { index: true },
+  });
+
+  const nextIndex = maxIndexResult ? maxIndexResult.index + 1 : 1;
+
+  // Extract data without projectId (since we'll use relation syntax)
+  const { projectId: _, ...restData } = data as any;
+
+  // Set default payment status to UNPAID and add index
+  const milestoneData: Prisma.MilestoneCreateInput = {
+    ...restData,
+    project: {
+      connect: { id: projectId },
+    },
+    index: nextIndex,
+    paymentStatus: "UNPAID",
+  };
+
   return await prisma.milestone.create({
-    data,
+    data: milestoneData,
   });
 };
 
@@ -25,6 +57,8 @@ const getAllMilestonesFromDB = async (
   const { limit, skip, page, sortBy, sortOrder } =
     generatePaginateAndSortOptions({
       ...paginationAndSortingQueryParams,
+      sortBy: paginationAndSortingQueryParams.sortBy || "index",
+      sortOrder: paginationAndSortingQueryParams.sortOrder || "asc",
     });
 
   const conditions: Prisma.MilestoneWhereInput[] = [];
@@ -49,9 +83,11 @@ const getAllMilestonesFromDB = async (
     where: conditions.length > 0 ? { AND: conditions } : {},
     skip,
     take: limit,
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
+    orderBy: sortBy === "index" 
+      ? { index: sortOrder as "asc" | "desc" }
+      : {
+          [sortBy]: sortOrder,
+        },
     include: {
       project: {
         select: {
@@ -124,6 +160,24 @@ const getAllMilestonesFromDB = async (
           employeeMilestones: true,
           serviceMilestones: true,
           Task: true,
+        },
+      },
+      payments: {
+        select: {
+          id: true,
+          invoiceNumber: true,
+          amount: true,
+          paidAt: true,
+          status: true,
+          paymentMethod: {
+            select: {
+              cardLast4: true,
+              cardBrand: true,
+            },
+          },
+        },
+        orderBy: {
+          paidAt: "desc",
         },
       },
     },
@@ -214,6 +268,24 @@ const getSingleMilestoneFromDB = async (id: string) => {
               },
             },
           },
+        },
+      },
+      payments: {
+        select: {
+          id: true,
+          invoiceNumber: true,
+          amount: true,
+          paidAt: true,
+          status: true,
+          paymentMethod: {
+            select: {
+              cardLast4: true,
+              cardBrand: true,
+            },
+          },
+        },
+        orderBy: {
+          paidAt: "desc",
         },
       },
     },

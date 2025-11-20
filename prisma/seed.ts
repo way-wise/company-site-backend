@@ -6,8 +6,6 @@ import { DEFAULT_ROLES } from "../src/app/modules/role/role.constants";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding database...");
-
   // Seed Permissions
   console.log(" Creating permissions...");
   for (const permission of DEFAULT_PERMISSIONS) {
