@@ -40,6 +40,34 @@ router.patch(
   PaymentController.setDefaultPaymentMethod
 );
 
+// Milestone payment routes
+router.post(
+  "/milestones/:milestoneId/process",
+  roleGuard("CLIENT"),
+  validateRequest(paymentValidationSchemas.processMilestonePayment),
+  PaymentController.processMilestonePayment
+);
+
+router.get(
+  "/milestones/:milestoneId/payments",
+  roleGuard("CLIENT"),
+  validateRequest(paymentValidationSchemas.getMilestonePayments),
+  PaymentController.getMilestonePayments
+);
+
+router.get(
+  "/payments",
+  roleGuard("CLIENT"),
+  PaymentController.getUserPayments
+);
+
+router.get(
+  "/payments/:paymentId/invoice",
+  roleGuard("CLIENT"),
+  validateRequest(paymentValidationSchemas.getPaymentInvoice),
+  PaymentController.getPaymentInvoice
+);
+
 export const PaymentRoutes = router;
 
 

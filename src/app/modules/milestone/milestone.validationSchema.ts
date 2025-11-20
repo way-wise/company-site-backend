@@ -4,6 +4,7 @@ const create = z.object({
   body: z.object({
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
+    cost: z.number().positive("Cost must be a positive number"),
     status: z
       .enum([
         "PENDING",
@@ -22,6 +23,7 @@ const update = z.object({
   body: z.object({
     name: z.string().optional(),
     description: z.string().optional(),
+    cost: z.number().positive("Cost must be a positive number").optional(),
     status: z
       .enum([
         "PENDING",
@@ -32,6 +34,7 @@ const update = z.object({
         "REJECTED",
       ])
       .optional(),
+    paymentStatus: z.enum(["UNPAID", "PAID"]).optional(),
   }),
 });
 

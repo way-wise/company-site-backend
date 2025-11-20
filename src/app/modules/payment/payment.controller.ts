@@ -128,11 +128,107 @@ const setDefaultPaymentMethod = catchAsync(
   }
 );
 
+const processMilestonePayment = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const userId = req.user?.id;
+    const { milestoneId } = req.params;
+
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User not authenticated",
+        data: null,
+      });
+    }
+
+    const result = await PaymentService.processMilestonePayment(
+      userId,
+      milestoneId
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Payment processed successfully",
+      data: result,
+    });
+  }
+);
+
+const getMilestonePayments = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { milestoneId } = req.params;
+
+    const result = await PaymentService.getMilestonePayments(milestoneId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Milestone payments fetched successfully",
+      data: result,
+    });
+  }
+);
+
+const getUserPayments = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User not authenticated",
+        data: null,
+      });
+    }
+
+    const result = await PaymentService.getUserPayments(userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "User payments fetched successfully",
+      data: result,
+    });
+  }
+);
+
+const getPaymentInvoice = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const userId = req.user?.id;
+    const { paymentId } = req.params;
+
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User not authenticated",
+        data: null,
+      });
+    }
+
+    const result = await PaymentService.getPaymentInvoice(paymentId, userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Invoice fetched successfully",
+      data: result,
+    });
+  }
+);
+
 export const PaymentController = {
   createSetupIntent,
   attachPaymentMethod,
   getAllPaymentMethods,
   deletePaymentMethod,
   setDefaultPaymentMethod,
+  processMilestonePayment,
+  getMilestonePayments,
+  getUserPayments,
+  getPaymentInvoice,
 };
 

@@ -11,6 +11,7 @@ export const PERMISSION_GROUPS = {
   COMMENT_MANAGEMENT: "comment_management",
   MILESRONE_MANAGEMENT: "milestone_management",
   TASK_MANAGEMENT: "task_management",
+  PARTNER_MANAGEMENT: "partner_management",
 } as const;
 
 export const DEFAULT_PERMISSIONS = [
@@ -310,5 +311,32 @@ export const DEFAULT_PERMISSIONS = [
     name: "get_task_stats",
     group: PERMISSION_GROUPS.TASK_MANAGEMENT,
     description: "Get task statistics",
+  },
+
+  // Partner Management
+  {
+    name: "create_partner",
+    group: PERMISSION_GROUPS.PARTNER_MANAGEMENT,
+    description: "Create new partners",
+  },
+  {
+    name: "read_partner",
+    group: PERMISSION_GROUPS.PARTNER_MANAGEMENT,
+    description: "View partner details",
+  },
+  {
+    name: "update_partner",
+    group: PERMISSION_GROUPS.PARTNER_MANAGEMENT,
+    description: "Update partner information",
+  },
+  {
+    name: "delete_partner",
+    group: PERMISSION_GROUPS.PARTNER_MANAGEMENT,
+    description: "Delete partners",
+  },
+  {
+    name: "toggle_partner_visibility",
+    group: PERMISSION_GROUPS.PARTNER_MANAGEMENT,
+    description: "Toggle partner visibility",
   },
 ];

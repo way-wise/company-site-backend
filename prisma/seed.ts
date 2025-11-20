@@ -6,8 +6,6 @@ import { DEFAULT_ROLES } from "../src/app/modules/role/role.constants";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding database...");
-
   // Seed Permissions
   console.log(" Creating permissions...");
   for (const permission of DEFAULT_PERMISSIONS) {
@@ -103,6 +101,13 @@ async function main() {
       // Comment Management
       "read_comment",
       "delete_comment",
+
+      // Partner Management
+      "create_partner",
+      "read_partner",
+      "update_partner",
+      "delete_partner",
+      "toggle_partner_visibility",
     ];
 
     const adminPermissions = await prisma.permission.findMany({

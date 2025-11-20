@@ -3,8 +3,8 @@ import config from "../config/config";
 
 type CookieSameSiteOption = "lax" | "none" | "strict";
 
-const ACCESS_TOKEN_MAX_FALLBACK = 60 * 1000; // 1 minute (testing)
-const REFRESH_TOKEN_MAX_FALLBACK = 2 * 60 * 1000; // 2 minutes (testing)
+const ACCESS_TOKEN_MAX_FALLBACK = 1 * 24 * 60 * 60 * 1000; // 1 days
+const REFRESH_TOKEN_MAX_FALLBACK = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const parseDurationToMs = (duration?: string, fallback?: number): number => {
   if (!duration) {
