@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc && npm run copy-templates",
-    "copy-templates": "mkdir -p dist/templates && cp -r src/templates/* dist/templates/",
+    "build": "tsc",
     "migrate": "npx prisma migrate dev",
     "studio": "npx prisma studio",
     "seed": "ts-node prisma/seed.ts"

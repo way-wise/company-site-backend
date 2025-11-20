@@ -2,7 +2,6 @@ import express from "express";
 import { AdminRoutes } from "../modules/admin/admin.routes";
 import { authRoutes } from "../modules/auth/auth.routes";
 import { ChatRoutes } from "../modules/chat/chat.routes";
-import { ContactRoutes } from "../modules/contact/contact.routes";
 import { leaveRoutes } from "../modules/leave/leave.routes";
 import { leaveBalanceRoutes } from "../modules/leaveBalance/leaveBalance.routes";
 import { MilestoneRoutes } from "../modules/milestone/milestone.routes";
@@ -73,10 +72,6 @@ const moduleRoutes = [
   {
     path: "/partner",
     route: PartnerRoutes,
-  },
-  {
-    path: "/contact",
-    route: ContactRoutes,
   },
 ];
 
