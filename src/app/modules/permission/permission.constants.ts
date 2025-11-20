@@ -12,6 +12,7 @@ export const PERMISSION_GROUPS = {
   MILESRONE_MANAGEMENT: "milestone_management",
   TASK_MANAGEMENT: "task_management",
   PARTNER_MANAGEMENT: "partner_management",
+  FINANCIAL_MANAGEMENT: "financial_management",
 } as const;
 
 export const DEFAULT_PERMISSIONS = [
@@ -338,5 +339,47 @@ export const DEFAULT_PERMISSIONS = [
     name: "toggle_partner_visibility",
     group: PERMISSION_GROUPS.PARTNER_MANAGEMENT,
     description: "Toggle partner visibility",
+  },
+
+  // Financial Management
+  {
+    name: "create_earning",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Create new earnings",
+  },
+  {
+    name: "read_earning",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "View earnings",
+  },
+  {
+    name: "update_earning",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Update earnings",
+  },
+  {
+    name: "delete_earning",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Delete earnings",
+  },
+  {
+    name: "create_expense",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Create new expenses",
+  },
+  {
+    name: "read_expense",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "View expenses",
+  },
+  {
+    name: "update_expense",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Update expenses",
+  },
+  {
+    name: "delete_expense",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Delete expenses",
   },
 ];

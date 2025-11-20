@@ -110,6 +110,8 @@ model UserProfile {
   messages                  Message[]
   projectNotes              ProjectNote[]
   projectFiles              ProjectFile[]
+  earnings                  Earning[]
+  expenses                  Expense[]
   user                      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
@@ -127,6 +129,7 @@ model Project {
   conversations Conversation[]
   notes         ProjectNote[]
   files         ProjectFile[]
+  earnings      Earning[]
   userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@index([status])
@@ -545,4 +548,42 @@ model ProjectFile {
   @@index([projectId])
   @@index([uploadedBy])
   @@map("project_files")
+}
+
+model Earning {
+  id          String      @id @default(ulid())
+  amount      Decimal
+  description String?
+  date        DateTime
+  projectId   String?
+  category    String?
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([projectId])
+  @@index([category])
+  @@index([createdBy])
+  @@map("earnings")
+}
+
+model Expense {
+  id          String      @id @default(ulid())
+  amount      Decimal
+  description String?
+  date        DateTime
+  category    String?
+  receiptUrl  String?
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([category])
+  @@index([createdBy])
+  @@map("expenses")
 }

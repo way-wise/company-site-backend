@@ -108,6 +108,16 @@ async function main() {
       "update_partner",
       "delete_partner",
       "toggle_partner_visibility",
+
+      // Financial Management
+      "create_earning",
+      "read_earning",
+      "update_earning",
+      "delete_earning",
+      "create_expense",
+      "read_expense",
+      "update_expense",
+      "delete_expense",
     ];
 
     const adminPermissions = await prisma.permission.findMany({
