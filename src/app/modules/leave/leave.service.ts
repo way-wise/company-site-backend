@@ -1,6 +1,7 @@
 import { LeaveStatus, LeaveType, Prisma } from "@prisma/client";
 import httpStatus from "http-status";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import prisma from "../../../shared/prismaClient";
 import { HTTPError } from "../../errors/HTTPError";
 import {
@@ -438,6 +439,34 @@ const updateLeaveStatus = async (
         },
       });
     }
+
+    // Send approval notification
+    await createAndEmitNotification({
+      userProfileId: existingLeave.userProfileId,
+      type: "LEAVE",
+      title: "Leave Application Approved",
+      message: `Your ${existingLeave.leaveType} leave application from ${new Date(existingLeave.startDate).toLocaleDateString()} to ${new Date(existingLeave.endDate).toLocaleDateString()} has been approved`,
+      data: {
+        leaveApplicationId: existingLeave.id,
+        leaveType: existingLeave.leaveType,
+        startDate: existingLeave.startDate,
+        endDate: existingLeave.endDate,
+        totalDays: existingLeave.totalDays,
+      },
+    });
+  } else if (data.status === "REJECTED") {
+    // Send rejection notification
+    await createAndEmitNotification({
+      userProfileId: existingLeave.userProfileId,
+      type: "LEAVE",
+      title: "Leave Application Rejected",
+      message: `Your ${existingLeave.leaveType} leave application has been rejected${data.rejectionReason ? `: ${data.rejectionReason}` : ""}`,
+      data: {
+        leaveApplicationId: existingLeave.id,
+        leaveType: existingLeave.leaveType,
+        rejectionReason: data.rejectionReason,
+      },
+    });
   }
 
   return mapLeaveApplication(result);

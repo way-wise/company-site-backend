@@ -1,4 +1,5 @@
 import { ProjectFile } from "@prisma/client";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import prisma from "../../../shared/prismaClient";
 
 const getFilesByProjectId = async (
@@ -33,7 +34,18 @@ const createFile = async (data: {
   fileSize: number;
   uploadedBy: string;
 }): Promise<ProjectFile> => {
-  return await prisma.projectFile.create({
+  const project = await prisma.project.findUnique({
+    where: { id: data.projectId },
+    include: {
+      userProfile: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const file = await prisma.projectFile.create({
     data,
     include: {
       uploader: {
@@ -49,6 +61,24 @@ const createFile = async (data: {
       },
     },
   });
+
+  // Notify project owner (if not the uploader)
+  if (project && project.userProfile.id !== data.uploadedBy) {
+    await createAndEmitNotification({
+      userProfileId: project.userProfile.id,
+      type: "FILE",
+      title: "New File Uploaded",
+      message: `A new file "${data.fileName}" has been uploaded to project "${project.name}"`,
+      data: {
+        fileId: file.id,
+        fileName: data.fileName,
+        projectId: project.id,
+        projectName: project.name,
+      },
+    });
+  }
+
+  return file;
 };
 
 const deleteFile = async (id: string): Promise<ProjectFile> => {

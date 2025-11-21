@@ -1,5 +1,6 @@
 import { Milestone, Prisma } from "@prisma/client";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import prisma from "../../../shared/prismaClient";
 import {
   IPaginationParams,
@@ -33,9 +34,27 @@ const createMilestoneIntoDB = async (
   // Extract data without projectId (since we'll use relation syntax)
   const { projectId: _, ...restData } = data as any;
 
+  // Convert date strings to DateTime objects if provided
+  const convertDateString = (dateString: string | Date | undefined): Date | undefined => {
+    if (!dateString) return undefined;
+    if (dateString instanceof Date) return dateString;
+    // If it's a date string (YYYY-MM-DD), convert to DateTime at midnight UTC
+    if (typeof dateString === "string") {
+      // Check if it's already a full ISO string
+      if (dateString.includes("T")) {
+        return new Date(dateString);
+      }
+      // If it's just a date (YYYY-MM-DD), add time to make it a proper DateTime
+      return new Date(`${dateString}T00:00:00.000Z`);
+    }
+    return undefined;
+  };
+
   // Set default payment status to UNPAID and add index
   const milestoneData: Prisma.MilestoneCreateInput = {
     ...restData,
+    startDate: convertDateString(restData.startDate),
+    endDate: convertDateString(restData.endDate),
     project: {
       connect: { id: projectId },
     },
@@ -296,18 +315,89 @@ const updateMilestoneIntoDB = async (
   id: string,
   data: Partial<Milestone>
 ): Promise<Milestone> => {
-  await prisma.milestone.findUniqueOrThrow({
+  const existingMilestone = await prisma.milestone.findUniqueOrThrow({
     where: {
       id,
+    },
+    include: {
+      project: {
+        include: {
+          userProfile: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+      employeeMilestones: {
+        select: {
+          userProfileId: true,
+        },
+      },
     },
   });
 
-  return await prisma.milestone.update({
+  // Convert date strings to DateTime objects if provided
+  const convertDateString = (dateString: string | Date | undefined | null): Date | undefined | null => {
+    if (dateString === null || dateString === undefined) return dateString;
+    if (dateString instanceof Date) return dateString;
+    // If it's a date string (YYYY-MM-DD), convert to DateTime at midnight UTC
+    if (typeof dateString === "string") {
+      // Check if it's already a full ISO string
+      if (dateString.includes("T")) {
+        return new Date(dateString);
+      }
+      // If it's just a date (YYYY-MM-DD), add time to make it a proper DateTime
+      return new Date(`${dateString}T00:00:00.000Z`);
+    }
+    return undefined;
+  };
+
+  const updateData: Partial<Milestone> = {
+    ...data,
+  };
+
+  // Convert dates if they exist in the update data
+  if ("startDate" in data) {
+    updateData.startDate = convertDateString(data.startDate as string | Date | undefined | null) as any;
+  }
+  if ("endDate" in data) {
+    updateData.endDate = convertDateString(data.endDate as string | Date | undefined | null) as any;
+  }
+
+  const updatedMilestone = await prisma.milestone.update({
     where: {
       id,
     },
-    data,
+    data: updateData,
   });
+
+  // Notify project owner and assigned employees if status changed
+  if (data.status && data.status !== existingMilestone.status) {
+    const allUserIds = [
+      existingMilestone.project.userProfile.id,
+      ...existingMilestone.employeeMilestones.map((em) => em.userProfileId),
+    ];
+    const uniqueUserIds = Array.from(new Set(allUserIds));
+
+    for (const userProfileId of uniqueUserIds) {
+      await createAndEmitNotification({
+        userProfileId,
+        type: "MILESTONE",
+        title: "Milestone Status Updated",
+        message: `Milestone "${existingMilestone.name}" status changed to ${data.status}`,
+        data: {
+          milestoneId: existingMilestone.id,
+          milestoneName: existingMilestone.name,
+          oldStatus: existingMilestone.status,
+          newStatus: data.status,
+          projectId: existingMilestone.project.id,
+        },
+      });
+    }
+  }
+
+  return updatedMilestone;
 };
 
 const deleteMilestoneFromDB = async (id: string): Promise<Milestone> => {

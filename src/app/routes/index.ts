@@ -10,6 +10,7 @@ import { PaymentRoutes } from "../modules/payment/payment.routes";
 import { permissionRoutes } from "../modules/permission/permission.routes";
 import { EarningRoutes } from "../modules/earning/earning.routes";
 import { ExpenseRoutes } from "../modules/expense/expense.routes";
+import { NotificationRoutes } from "../modules/notification/notification.routes";
 import { ProjectRoutes } from "../modules/project/project.routes";
 import { ProjectNoteRoutes } from "../modules/projectNote/projectNote.routes";
 import { ProjectFileRoutes } from "../modules/projectFile/projectFile.routes";
@@ -92,6 +93,10 @@ const moduleRoutes = [
   {
     path: "/expenses",
     route: ExpenseRoutes,
+  },
+  {
+    path: "/notifications",
+    route: NotificationRoutes,
   },
 ];
 

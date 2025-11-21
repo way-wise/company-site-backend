@@ -1,6 +1,7 @@
 import { PaymentMethod, Prisma } from "@prisma/client";
 import httpStatus from "http-status";
 import stripe from "../../../helpers/stripeClient";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import { HTTPError } from "../../errors/HTTPError";
 import prisma from "../../../shared/prismaClient";
 
@@ -459,6 +460,22 @@ const processMilestonePayment = async (
     await prisma.milestone.update({
       where: { id: milestoneId },
       data: { paymentStatus: "PAID" },
+    });
+
+    // Send payment success notification to project owner
+    await createAndEmitNotification({
+      userProfileId: milestone.project.userProfile.id,
+      type: "PAYMENT",
+      title: "Payment Received",
+      message: `Payment of $${costValue.toFixed(2)} received for milestone "${milestone.name}" in project "${milestone.project.name}"`,
+      data: {
+        paymentId: paymentRecord.id,
+        milestoneId: milestone.id,
+        milestoneName: milestone.name,
+        amount: costValue,
+        invoiceNumber,
+        projectId: milestone.project.id,
+      },
     });
 
     // Fetch the complete payment record with relations

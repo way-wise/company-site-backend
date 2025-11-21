@@ -69,10 +69,10 @@ model User {
   updatedAt                DateTime             @updatedAt
   isPasswordChangeRequired Boolean              @default(true)
   refreshToken             String?
+  milestonePayments        MilestonePayment[]
+  paymentMethods           PaymentMethod[]
   userProfile              UserProfile?
   roles                    UserRoleAssignment[]
-  paymentMethods           PaymentMethod[]
-  milestonePayments        MilestonePayment[]
 
   @@index([status])
   @@map("users")
@@ -98,20 +98,21 @@ model UserProfile {
   updatedAt                 DateTime                  @updatedAt
   blogs                     Blog[]
   comments                  Comment[]
+  conversationParticipants  ConversationParticipant[]
+  earnings                  Earning[]
   employeeMilestones        EmployeeMilestone[]
+  expenses                  Expense[]
   approvedLeaveApplications LeaveApplication[]        @relation("ApprovedBy")
   leaveApplications         LeaveApplication[]
   leaveBalances             LeaveBalance[]
+  messages                  Message[]
+  notifications             Notification[]
+  projectFiles              ProjectFile[]
+  projectNotes              ProjectNote[]
   projects                  Project[]
   taskAssignments           TaskAssignment[]
   taskComments              TaskComment[]
   tasks                     Task[]
-  conversationParticipants  ConversationParticipant[]
-  messages                  Message[]
-  projectNotes              ProjectNote[]
-  projectFiles              ProjectFile[]
-  earnings                  Earning[]
-  expenses                  Expense[]
   user                      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
@@ -125,11 +126,11 @@ model Project {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   userProfileId String
-  milestones    Milestone[]
   conversations Conversation[]
-  notes         ProjectNote[]
-  files         ProjectFile[]
   earnings      Earning[]
+  milestones    Milestone[]
+  files         ProjectFile[]
+  notes         ProjectNote?
   userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@index([status])
@@ -142,45 +143,46 @@ model Milestone {
   name               String
   description        String?
   status             MilestoneStatus     @default(PENDING)
-  cost               Decimal?
-  paymentStatus      PaymentStatus       @default(UNPAID)
-  index              Int
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   projectId          String
+  cost               Decimal?
+  index              Int
+  paymentStatus      PaymentStatus       @default(UNPAID)
+  endDate            DateTime?
+  startDate          DateTime?
   employeeMilestones EmployeeMilestone[]
+  payments           MilestonePayment[]
   project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   serviceMilestones  ServiceMilestone[]
   Task               Task[]
-  payments           MilestonePayment[]
 
+  @@unique([projectId, index])
   @@index([projectId])
   @@index([status])
   @@index([paymentStatus])
   @@index([projectId, index])
-  @@unique([projectId, index])
   @@map("milestones")
 }
 
 model Task {
-  id             String     @id @default(ulid())
+  id             String           @id @default(ulid())
   title          String
   description    String?
   milestoneId    String
   creatorId      String?
-  status         TaskStatus @default(TODO)
-  priority       Priority   @default(MEDIUM)
-  progress       Int        @default(0)
+  status         TaskStatus       @default(TODO)
+  priority       Priority         @default(MEDIUM)
+  progress       Int              @default(0)
   estimatedHours Int?
-
-  startedAt   DateTime?
-  completedAt DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  assignments TaskAssignment[]
-  comments    TaskComment[]
-  creator     UserProfile?     @relation(fields: [creatorId], references: [id])
-  milestone   Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  assignments    TaskAssignment[]
+  comments       TaskComment[]
+  creator        UserProfile?     @relation(fields: [creatorId], references: [id])
+  milestone      Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([priority])
@@ -289,13 +291,13 @@ model Comment {
 model LeaveBalance {
   id            String      @id @default(ulid())
   userProfileId String
-  leaveType     LeaveType
   year          Int
   totalDays     Int         @default(0)
   usedDays      Int         @default(0)
   remainingDays Int         @default(0)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  leaveType     LeaveType
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@unique([userProfileId, leaveType, year])
@@ -315,12 +317,12 @@ model LeaveApplication {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   userProfileId   String
-  leaveType       LeaveType
-  totalDays       Int
   attachmentUrl   String?
   cancelledAt     DateTime?
-  rejectionReason String?
   comments        String?
+  rejectionReason String?
+  totalDays       Int
+  leaveType       LeaveType
   approver        UserProfile? @relation("ApprovedBy", fields: [approvedBy], references: [id])
   userProfile     UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
@@ -330,6 +332,204 @@ model LeaveApplication {
   @@index([leaveType])
   @@index([startDate, endDate])
   @@map("leave_applications")
+}
+
+model Conversation {
+  id           String                    @id @default(ulid())
+  name         String?
+  type         ConversationType
+  projectId    String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  project      Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages     Message[]
+
+  @@index([type])
+  @@index([projectId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(ulid())
+  conversationId String
+  userProfileId  String
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime     @default(now())
+  isAdmin        Boolean      @default(false)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userProfile    UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userProfileId])
+  @@index([userProfileId])
+  @@index([conversationId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(ulid())
+  conversationId String
+  senderId       String
+  content        String
+  attachments    Json?
+  isEdited       Boolean      @default(false)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         UserProfile  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model PaymentMethod {
+  id                    String             @id @default(ulid())
+  userId                String
+  stripePaymentMethodId String             @unique
+  stripeCustomerId      String?
+  cardLast4             String
+  cardBrand             String
+  cardExpMonth          Int
+  cardExpYear           Int
+  isDefault             Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  milestonePayments     MilestonePayment[]
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripePaymentMethodId])
+  @@map("payment_methods")
+}
+
+model MilestonePayment {
+  id                    String        @id @default(ulid())
+  milestoneId           String
+  userId                String
+  amount                Decimal
+  stripePaymentIntentId String
+  stripeChargeId        String?
+  paymentMethodId       String
+  status                String        @default("succeeded")
+  invoiceNumber         String        @unique
+  paidAt                DateTime      @default(now())
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  milestone             Milestone     @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  paymentMethod         PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([userId])
+  @@index([invoiceNumber])
+  @@map("milestone_payments")
+}
+
+model Partner {
+  id        String   @id @default(ulid())
+  name      String
+  image     String
+  isShow    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isShow])
+  @@map("partners")
+}
+
+model ProjectNote {
+  id        String      @id @default(ulid())
+  projectId String      @unique
+  content   String      @default("")
+  createdBy String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  creator   UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([createdBy])
+  @@map("project_notes")
+}
+
+model ProjectFile {
+  id         String      @id @default(ulid())
+  projectId  String
+  fileName   String
+  fileUrl    String
+  fileType   String
+  fileSize   Int
+  uploadedBy String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader   UserProfile @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([uploadedBy])
+  @@map("project_files")
+}
+
+model Earning {
+  id          String      @id @default(ulid())
+  amount      Decimal
+  description String?
+  date        DateTime
+  projectId   String?
+  category    String?
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  project     Project?    @relation(fields: [projectId], references: [id])
+
+  @@index([date])
+  @@index([projectId])
+  @@index([category])
+  @@index([createdBy])
+  @@map("earnings")
+}
+
+model Expense {
+  id          String      @id @default(ulid())
+  amount      Decimal
+  description String?
+  date        DateTime
+  category    String?
+  receiptUrl  String?
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([category])
+  @@index([createdBy])
+  @@map("expenses")
+}
+
+model Notification {
+  id            String           @id @default(ulid())
+  userProfileId String
+  type          NotificationType
+  title         String
+  message       String
+  data          Json?
+  read          Boolean          @default(false)
+  readAt        DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  userProfile   UserProfile      @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@index([userProfileId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([type])
+  @@index([userProfileId, read])
+  @@map("notifications")
 }
 
 enum UserStatus {
@@ -404,186 +604,20 @@ enum Priority {
   CRITICAL
 }
 
-model Conversation {
-  id           String                    @id @default(ulid())
-  name         String?
-  type         ConversationType
-  projectId    String?
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  participants ConversationParticipant[]
-  messages     Message[]
-  project      Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([type])
-  @@index([projectId])
-  @@map("conversations")
-}
-
-model ConversationParticipant {
-  id             String       @id @default(ulid())
-  conversationId String
-  userProfileId  String
-  joinedAt       DateTime     @default(now())
-  lastReadAt     DateTime     @default(now())
-  isAdmin        Boolean      @default(false)
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userProfile    UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-
-  @@unique([conversationId, userProfileId])
-  @@index([userProfileId])
-  @@index([conversationId])
-  @@map("conversation_participants")
-}
-
-model Message {
-  id             String       @id @default(ulid())
-  conversationId String
-  senderId       String
-  content        String
-  attachments    Json?
-  isEdited       Boolean      @default(false)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         UserProfile  @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId])
-  @@index([senderId])
-  @@index([createdAt])
-  @@map("messages")
+enum NotificationType {
+  PROJECT
+  TASK
+  LEAVE
+  PAYMENT
+  MILESTONE
+  CHAT
+  FILE
+  COMMENT
+  SYSTEM
 }
 
 enum ConversationType {
   DIRECT
   GROUP
   PROJECT
-}
-
-model PaymentMethod {
-  id                    String            @id @default(ulid())
-  userId                String
-  stripePaymentMethodId String            @unique
-  stripeCustomerId      String?
-  cardLast4             String
-  cardBrand             String
-  cardExpMonth          Int
-  cardExpYear           Int
-  isDefault             Boolean           @default(false)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  milestonePayments    MilestonePayment[]
-
-  @@index([userId])
-  @@index([stripePaymentMethodId])
-  @@map("payment_methods")
-}
-
-model MilestonePayment {
-  id                   String        @id @default(ulid())
-  milestoneId          String
-  userId               String
-  amount               Decimal
-  stripePaymentIntentId String
-  stripeChargeId       String?
-  paymentMethodId      String
-  status               String        @default("succeeded")
-  invoiceNumber        String        @unique
-  paidAt               DateTime      @default(now())
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  milestone            Milestone      @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentMethod        PaymentMethod @relation(fields: [paymentMethodId], references: [id])
-
-  @@index([milestoneId])
-  @@index([userId])
-  @@index([invoiceNumber])
-  @@map("milestone_payments")
-}
-
-model Partner {
-  id        String   @id @default(ulid())
-  name      String
-  image     String
-  isShow    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isShow])
-  @@map("partners")
-}
-
-model ProjectNote {
-  id          String      @id @default(ulid())
-  projectId   String
-  content     String      @default("")
-  createdBy   String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@unique([projectId])
-  @@index([projectId])
-  @@index([createdBy])
-  @@map("project_notes")
-}
-
-model ProjectFile {
-  id          String      @id @default(ulid())
-  projectId   String
-  fileName    String
-  fileUrl     String
-  fileType    String
-  fileSize    Int
-  uploadedBy  String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploader    UserProfile @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([uploadedBy])
-  @@map("project_files")
-}
-
-model Earning {
-  id          String      @id @default(ulid())
-  amount      Decimal
-  description String?
-  date        DateTime
-  projectId   String?
-  category    String?
-  createdBy   String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  project     Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@index([date])
-  @@index([projectId])
-  @@index([category])
-  @@index([createdBy])
-  @@map("earnings")
-}
-
-model Expense {
-  id          String      @id @default(ulid())
-  amount      Decimal
-  description String?
-  date        DateTime
-  category    String?
-  receiptUrl  String?
-  createdBy   String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  creator     UserProfile @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@index([date])
-  @@index([category])
-  @@index([createdBy])
-  @@map("expenses")
 }

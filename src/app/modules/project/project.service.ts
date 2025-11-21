@@ -1,5 +1,6 @@
 import { Prisma, Project } from "@prisma/client";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import prisma from "../../../shared/prismaClient";
 import {
   IPaginationParams,
@@ -232,18 +233,57 @@ const updateProjectIntoDB = async (
   id: string,
   data: Partial<Project>
 ): Promise<Project> => {
-  await prisma.project.findUniqueOrThrow({
+  const existingProject = await prisma.project.findUniqueOrThrow({
     where: {
       id,
     },
+    include: {
+      milestones: {
+        include: {
+          employeeMilestones: {
+            select: {
+              userProfileId: true,
+            },
+          },
+        },
+      },
+    },
   });
 
-  return await prisma.project.update({
+  const updatedProject = await prisma.project.update({
     where: {
       id,
     },
     data,
   });
+
+  // Notify project owner and assigned employees if status changed
+  if (data.status && data.status !== existingProject.status) {
+    const allUserIds = [
+      existingProject.userProfileId,
+      ...existingProject.milestones.flatMap((m) =>
+        m.employeeMilestones.map((em) => em.userProfileId)
+      ),
+    ];
+    const uniqueUserIds = Array.from(new Set(allUserIds));
+
+    for (const userProfileId of uniqueUserIds) {
+      await createAndEmitNotification({
+        userProfileId,
+        type: "PROJECT",
+        title: "Project Status Updated",
+        message: `Project "${existingProject.name}" status changed to ${data.status}`,
+        data: {
+          projectId: existingProject.id,
+          projectName: existingProject.name,
+          oldStatus: existingProject.status,
+          newStatus: data.status,
+        },
+      });
+    }
+  }
+
+  return updatedProject;
 };
 
 const deleteProjectFromDB = async (id: string): Promise<Project> => {
