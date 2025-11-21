@@ -144,6 +144,8 @@ model Milestone {
   status             MilestoneStatus     @default(PENDING)
   cost               Decimal?
   paymentStatus      PaymentStatus       @default(UNPAID)
+  startDate          DateTime?
+  endDate            DateTime?
   index              Int
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt

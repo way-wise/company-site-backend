@@ -33,9 +33,27 @@ const createMilestoneIntoDB = async (
   // Extract data without projectId (since we'll use relation syntax)
   const { projectId: _, ...restData } = data as any;
 
+  // Convert date strings to DateTime objects if provided
+  const convertDateString = (dateString: string | Date | undefined): Date | undefined => {
+    if (!dateString) return undefined;
+    if (dateString instanceof Date) return dateString;
+    // If it's a date string (YYYY-MM-DD), convert to DateTime at midnight UTC
+    if (typeof dateString === "string") {
+      // Check if it's already a full ISO string
+      if (dateString.includes("T")) {
+        return new Date(dateString);
+      }
+      // If it's just a date (YYYY-MM-DD), add time to make it a proper DateTime
+      return new Date(`${dateString}T00:00:00.000Z`);
+    }
+    return undefined;
+  };
+
   // Set default payment status to UNPAID and add index
   const milestoneData: Prisma.MilestoneCreateInput = {
     ...restData,
+    startDate: convertDateString(restData.startDate),
+    endDate: convertDateString(restData.endDate),
     project: {
       connect: { id: projectId },
     },
@@ -302,11 +320,39 @@ const updateMilestoneIntoDB = async (
     },
   });
 
+  // Convert date strings to DateTime objects if provided
+  const convertDateString = (dateString: string | Date | undefined | null): Date | undefined | null => {
+    if (dateString === null || dateString === undefined) return dateString;
+    if (dateString instanceof Date) return dateString;
+    // If it's a date string (YYYY-MM-DD), convert to DateTime at midnight UTC
+    if (typeof dateString === "string") {
+      // Check if it's already a full ISO string
+      if (dateString.includes("T")) {
+        return new Date(dateString);
+      }
+      // If it's just a date (YYYY-MM-DD), add time to make it a proper DateTime
+      return new Date(`${dateString}T00:00:00.000Z`);
+    }
+    return undefined;
+  };
+
+  const updateData: Partial<Milestone> = {
+    ...data,
+  };
+
+  // Convert dates if they exist in the update data
+  if ("startDate" in data) {
+    updateData.startDate = convertDateString(data.startDate as string | Date | undefined | null) as any;
+  }
+  if ("endDate" in data) {
+    updateData.endDate = convertDateString(data.endDate as string | Date | undefined | null) as any;
+  }
+
   return await prisma.milestone.update({
     where: {
       id,
     },
-    data,
+    data: updateData,
   });
 };
 
