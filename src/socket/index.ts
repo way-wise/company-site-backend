@@ -146,3 +146,8 @@ export const getIO = (): SocketIOServer => {
   }
   return io;
 };
+
+// Helper to check if socket.io is initialized
+export const isSocketInitialized = (): boolean => {
+  return !!io;
+};

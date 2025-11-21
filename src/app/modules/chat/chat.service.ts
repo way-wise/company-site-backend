@@ -4,6 +4,7 @@ import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpe
 import prisma from "../../../shared/prismaClient";
 import { getIO } from "../../../socket";
 import { HTTPError } from "../../errors/HTTPError";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import {
   IPaginationParams,
   ISortingParams,
@@ -257,6 +258,37 @@ const createConversationIntoDB = async (
     },
   });
 
+  // Create notifications for all participants except the creator
+  try {
+    const conversationName = conversation.name || 
+      (conversation.type === "DIRECT" 
+        ? conversation.participants.find(p => p.userProfileId !== currentUserProfileId)?.userProfile?.user?.name || "Direct Message"
+        : conversation.type === "PROJECT" && conversation.project
+        ? conversation.project.name
+        : "New Conversation");
+
+    for (const participant of conversation.participants) {
+      // Skip notification for the creator
+      if (participant.userProfileId === currentUserProfileId) {
+        continue;
+      }
+
+      await createAndEmitNotification({
+        userProfileId: participant.userProfileId,
+        type: "CHAT",
+        title: "New Conversation",
+        message: `You have been added to a conversation: ${conversationName}`,
+        data: {
+          conversationId: conversation.id,
+          conversationName,
+          conversationType: conversation.type,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error creating conversation notifications:", error);
+  }
+
   // Emit socket event to notify all participants about the new conversation
   try {
     const io = getIO();
@@ -388,6 +420,60 @@ const createMessage = async (
     senderId,
     payload
   );
+
+  // Get conversation details for notification
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      project: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  // Create notifications for all participants except the sender
+  try {
+    const conversationName = 
+      conversation?.name || 
+      (conversation?.type === "PROJECT" && conversation?.project?.name
+        ? conversation.project.name
+        : "Conversation");
+
+    const senderName = message.sender.user?.name || "Someone";
+    const messagePreview = message.content 
+      ? (message.content.length > 50 ? message.content.substring(0, 50) + "..." : message.content)
+      : message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0
+      ? "sent an attachment"
+      : "sent a message";
+
+    for (const participantId of participantIds) {
+      // Skip notification for the sender
+      if (participantId === senderId) {
+        continue;
+      }
+
+      await createAndEmitNotification({
+        userProfileId: participantId,
+        type: "CHAT",
+        title: "New Message",
+        message: `${senderName}: ${messagePreview}`,
+        data: {
+          conversationId: conversationId,
+          messageId: message.id,
+          senderId: senderId,
+          conversationName,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error creating message notifications:", error);
+  }
+
   await broadcastMessageEvents(conversationId, participantIds, message);
   return message;
 };

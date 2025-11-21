@@ -1,5 +1,6 @@
 import { Milestone, Prisma } from "@prisma/client";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import prisma from "../../../shared/prismaClient";
 import {
   IPaginationParams,
@@ -314,9 +315,25 @@ const updateMilestoneIntoDB = async (
   id: string,
   data: Partial<Milestone>
 ): Promise<Milestone> => {
-  await prisma.milestone.findUniqueOrThrow({
+  const existingMilestone = await prisma.milestone.findUniqueOrThrow({
     where: {
       id,
+    },
+    include: {
+      project: {
+        include: {
+          userProfile: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+      employeeMilestones: {
+        select: {
+          userProfileId: true,
+        },
+      },
     },
   });
 
@@ -348,12 +365,39 @@ const updateMilestoneIntoDB = async (
     updateData.endDate = convertDateString(data.endDate as string | Date | undefined | null) as any;
   }
 
-  return await prisma.milestone.update({
+  const updatedMilestone = await prisma.milestone.update({
     where: {
       id,
     },
     data: updateData,
   });
+
+  // Notify project owner and assigned employees if status changed
+  if (data.status && data.status !== existingMilestone.status) {
+    const allUserIds = [
+      existingMilestone.project.userProfile.id,
+      ...existingMilestone.employeeMilestones.map((em) => em.userProfileId),
+    ];
+    const uniqueUserIds = Array.from(new Set(allUserIds));
+
+    for (const userProfileId of uniqueUserIds) {
+      await createAndEmitNotification({
+        userProfileId,
+        type: "MILESTONE",
+        title: "Milestone Status Updated",
+        message: `Milestone "${existingMilestone.name}" status changed to ${data.status}`,
+        data: {
+          milestoneId: existingMilestone.id,
+          milestoneName: existingMilestone.name,
+          oldStatus: existingMilestone.status,
+          newStatus: data.status,
+          projectId: existingMilestone.project.id,
+        },
+      });
+    }
+  }
+
+  return updatedMilestone;
 };
 
 const deleteMilestoneFromDB = async (id: string): Promise<Milestone> => {

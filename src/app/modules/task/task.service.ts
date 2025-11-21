@@ -1,5 +1,6 @@
 import { Prisma, Task } from "@prisma/client";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
+import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import prisma from "../../../shared/prismaClient";
 import {
   IPaginationParams,
@@ -199,18 +200,59 @@ const updateTaskIntoDB = async (
   id: string,
   data: Partial<Task>
 ): Promise<Task> => {
-  await prisma.task.findUniqueOrThrow({
+  const existingTask = await prisma.task.findUniqueOrThrow({
     where: {
       id,
     },
+    include: {
+      assignments: {
+        select: {
+          userProfileId: true,
+        },
+      },
+      milestone: {
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
   });
 
-  return await prisma.task.update({
+  const updatedTask = await prisma.task.update({
     where: {
       id,
     },
     data,
   });
+
+  // Notify assigned users if status changed
+  if (data.status && data.status !== existingTask.status) {
+    const assignedUserIds = existingTask.assignments.map(
+      (a) => a.userProfileId
+    );
+    for (const userProfileId of assignedUserIds) {
+      await createAndEmitNotification({
+        userProfileId,
+        type: "TASK",
+        title: "Task Status Updated",
+        message: `Task "${existingTask.title}" status changed to ${data.status} in project "${existingTask.milestone.project.name}"`,
+        data: {
+          taskId: existingTask.id,
+          taskTitle: existingTask.title,
+          oldStatus: existingTask.status,
+          newStatus: data.status,
+          projectId: existingTask.milestone.project.id,
+        },
+      });
+    }
+  }
+
+  return updatedTask;
 };
 
 const deleteTaskFromDB = async (id: string): Promise<Task> => {
@@ -233,8 +275,20 @@ const assignEmployeesToTask = async (
   roles?: string[]
 ) => {
   // First verify task exists
-  await prisma.task.findUniqueOrThrow({
+  const task = await prisma.task.findUniqueOrThrow({
     where: { id: taskId },
+    include: {
+      milestone: {
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   // Delete existing assignments
@@ -252,6 +306,22 @@ const assignEmployeesToTask = async (
   await prisma.taskAssignment.createMany({
     data: assignments,
   });
+
+  // Send notifications to assigned users
+  for (const userProfileId of userProfileIds) {
+    await createAndEmitNotification({
+      userProfileId,
+      type: "TASK",
+      title: "New Task Assignment",
+      message: `You have been assigned to task "${task.title}" in project "${task.milestone.project.name}"`,
+      data: {
+        taskId: task.id,
+        taskTitle: task.title,
+        projectId: task.milestone.project.id,
+        projectName: task.milestone.project.name,
+      },
+    });
+  }
 
   return await prisma.task.findUnique({
     where: { id: taskId },
@@ -282,11 +352,28 @@ const addCommentToTask = async (
   content: string
 ) => {
   // First verify task exists
-  await prisma.task.findUniqueOrThrow({
+  const task = await prisma.task.findUniqueOrThrow({
     where: { id: taskId },
+    include: {
+      assignments: {
+        select: {
+          userProfileId: true,
+        },
+      },
+      milestone: {
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
   });
 
-  return await prisma.taskComment.create({
+  const comment = await prisma.taskComment.create({
     data: {
       taskId,
       userProfileId,
@@ -307,6 +394,28 @@ const addCommentToTask = async (
       },
     },
   });
+
+  // Notify assigned users (except the commenter)
+  const assignedUserIds = task.assignments
+    .map((a) => a.userProfileId)
+    .filter((id) => id !== userProfileId);
+
+  for (const assignedUserId of assignedUserIds) {
+    await createAndEmitNotification({
+      userProfileId: assignedUserId,
+      type: "COMMENT",
+      title: "New Comment on Task",
+      message: `A new comment was added to task "${task.title}"`,
+      data: {
+        taskId: task.id,
+        taskTitle: task.title,
+        commentId: comment.id,
+        projectId: task.milestone.project.id,
+      },
+    });
+  }
+
+  return comment;
 };
 
 const updateTaskProgress = async (taskId: string, progress: number) => {
