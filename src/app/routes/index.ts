@@ -12,6 +12,7 @@ import { EarningRoutes } from "../modules/earning/earning.routes";
 import { ExpenseRoutes } from "../modules/expense/expense.routes";
 import { NotificationRoutes } from "../modules/notification/notification.routes";
 import { ProjectRoutes } from "../modules/project/project.routes";
+import { SSERoutes } from "../modules/sse/sse.routes";
 import { ProjectNoteRoutes } from "../modules/projectNote/projectNote.routes";
 import { ProjectFileRoutes } from "../modules/projectFile/projectFile.routes";
 import { roleRoutes } from "../modules/role/role.routes";
@@ -97,6 +98,10 @@ const moduleRoutes = [
   {
     path: "/notifications",
     route: NotificationRoutes,
+  },
+  {
+    path: "/sse",
+    route: SSERoutes,
   },
 ];
 

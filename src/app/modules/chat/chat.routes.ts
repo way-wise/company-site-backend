@@ -45,6 +45,11 @@ router.delete(
   ChatController.removeParticipant
 );
 
+router.patch(
+  "/conversations/:id/read",
+  ChatController.markConversationAsRead
+);
+
 // Message routes
 router.patch(
   "/messages/:id",

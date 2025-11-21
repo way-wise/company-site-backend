@@ -68,7 +68,12 @@ const extractTokens = (req: Request) => {
     ? authHeader.substring(7)
     : authHeader || undefined;
 
-  const accessToken = accessTokenFromCookie ?? accessTokenFromHeader;
+  // Check query parameter as fallback (for EventSource cross-origin)
+  const accessTokenFromQuery = req.query?.token 
+    ? (typeof req.query.token === "string" ? req.query.token : undefined)
+    : undefined;
+
+  const accessToken = accessTokenFromCookie ?? accessTokenFromHeader ?? accessTokenFromQuery;
 
   return {
     accessToken,

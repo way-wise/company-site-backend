@@ -508,12 +508,11 @@ const assignEmployeesToMilestone = async (
           skipDuplicates: true,
         });
 
-        // Emit socket events to notify new participants
+        // Emit SSE events to notify new participants
         try {
-          const { getIO } = require("../../../socket");
-          const io = getIO();
+          const { broadcastToUser } = require("../../../sse");
 
-          // Fetch updated conversation for socket event
+          // Fetch updated conversation for SSE event
           const updatedConversation = await prisma.conversation.findUnique({
             where: { id: projectConversation.id },
             include: {
@@ -544,23 +543,26 @@ const assignEmployeesToMilestone = async (
           });
 
           // Notify new employees about the conversation
-          employeesToAdd.forEach((userProfileId) => {
-            io.to(`user:${userProfileId}`).emit(
-              "conversation:new",
-              updatedConversation
-            );
-          });
+          const newParticipantPromises = employeesToAdd.map((userProfileId) =>
+            broadcastToUser(userProfileId, "conversation:new", updatedConversation)
+          );
+          await Promise.all(newParticipantPromises);
 
           // Notify all participants about the update
-          updatedConversation?.participants.forEach((participant) => {
-            io.to(`user:${participant.userProfileId}`).emit(
-              "conversation:updated",
-              updatedConversation
-            );
-          });
+          const updatePromises = updatedConversation?.participants.map(
+            (participant) =>
+              broadcastToUser(
+                participant.userProfileId,
+                "conversation:updated",
+                updatedConversation
+              )
+          );
+          if (updatePromises) {
+            await Promise.all(updatePromises);
+          }
         } catch (error) {
           console.error(
-            "Error emitting socket events for auto-added participants:",
+            "Error emitting SSE events for auto-added participants:",
             error
           );
         }
@@ -605,11 +607,10 @@ const assignEmployeesToMilestone = async (
             },
           });
 
-          // Emit socket event
+          // Emit SSE event
           try {
-            const { getIO } = require("../../../socket");
-            const io = getIO();
-            io.to(`user:${removedId}`).emit("conversation:removed", {
+            const { broadcastToUser } = require("../../../sse");
+            await broadcastToUser(removedId, "conversation:removed", {
               conversationId: projectConversation.id,
             });
           } catch (error) {

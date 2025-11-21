@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import httpStatus from "http-status";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import prisma from "../../../shared/prismaClient";
-import { getIO } from "../../../socket";
+import { broadcastToConversation, broadcastToUser } from "../../../sse";
 import { HTTPError } from "../../errors/HTTPError";
 import { createAndEmitNotification } from "../../../helpers/notificationHelper";
 import {
@@ -289,15 +289,12 @@ const createConversationIntoDB = async (
     console.error("Error creating conversation notifications:", error);
   }
 
-  // Emit socket event to notify all participants about the new conversation
+  // Emit SSE event to notify all participants about the new conversation
   try {
-    const io = getIO();
-    conversation.participants.forEach((participant) => {
-      io.to(`user:${participant.userProfileId}`).emit(
-        "conversation:new",
-        conversation
-      );
-    });
+    const broadcastPromises = conversation.participants.map((participant) =>
+      broadcastToUser(participant.userProfileId, "conversation:new", conversation)
+    );
+    await Promise.all(broadcastPromises);
   } catch (error) {
     console.error("Error emitting conversation:new event:", error);
   }
@@ -336,15 +333,33 @@ const broadcastMessageEvents = async (
   message: MessageWithSender
 ) => {
   try {
-    const io = getIO();
-    io.to(conversationId).emit("message:new", message);
+    // Broadcast new message to all conversation participants
+    const conversationBroadcast = broadcastToConversation(conversationId, "message:new", message);
 
-    participantIds.forEach((participantId) => {
-      io.to(`user:${participantId}`).emit("conversation:updated", {
-        conversationId,
-        lastMessage: message,
-        updatedAt: new Date(),
-      });
+    // Broadcast conversation update to each participant
+    const updateData = {
+      conversationId,
+      lastMessage: message,
+      updatedAt: new Date(),
+    };
+    const conversationUpdatePromises = participantIds.map((participantId) =>
+      broadcastToUser(participantId, "conversation:updated", updateData)
+    );
+
+    // Use Promise.allSettled to ensure all broadcasts complete even if some fail
+    const results = await Promise.allSettled([
+      conversationBroadcast,
+      ...conversationUpdatePromises,
+    ]);
+
+    // Log any failures but don't throw
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(
+          `Error in broadcast ${index === 0 ? "conversation" : `participant ${index}`}:`,
+          result.reason
+        );
+      }
     });
   } catch (error) {
     console.error("Error emitting message events:", error);
@@ -950,23 +965,24 @@ const addParticipantsToConversation = async (
     currentUserProfileId
   );
 
-  // Emit socket event to notify new participants about the conversation
+  // Emit SSE event to notify new participants about the conversation
   try {
-    const io = getIO();
-    payload.userProfileIds.forEach((userProfileId) => {
-      io.to(`user:${userProfileId}`).emit(
-        "conversation:new",
-        updatedConversation
-      );
-    });
+    // Notify new participants
+    const newParticipantPromises = payload.userProfileIds.map((userProfileId) =>
+      broadcastToUser(userProfileId, "conversation:new", updatedConversation)
+    );
+    await Promise.all(newParticipantPromises);
 
     // Also notify all existing participants about the update
-    updatedConversation.participants.forEach((participant) => {
-      io.to(`user:${participant.userProfileId}`).emit(
-        "conversation:updated",
-        updatedConversation
-      );
-    });
+    const existingParticipantPromises = updatedConversation.participants.map(
+      (participant) =>
+        broadcastToUser(
+          participant.userProfileId,
+          "conversation:updated",
+          updatedConversation
+        )
+    );
+    await Promise.all(existingParticipantPromises);
   } catch (error) {
     console.error(
       "Error emitting conversation:new event for new participants:",
@@ -1069,12 +1085,10 @@ const removeParticipantFromConversation = async (
     },
   });
 
-  // Emit socket events for real-time updates
+  // Emit SSE events for real-time updates
   try {
-    const io = getIO();
-
     // Notify the removed participant
-    io.to(`user:${participantUserProfileId}`).emit("conversation:removed", {
+    await broadcastToUser(participantUserProfileId, "conversation:removed", {
       conversationId,
     });
 
@@ -1084,12 +1098,14 @@ const removeParticipantFromConversation = async (
       currentUserProfileId
     );
 
-    updatedConversation.participants.forEach((participant) => {
-      io.to(`user:${participant.userProfileId}`).emit(
+    const updatePromises = updatedConversation.participants.map((participant) =>
+      broadcastToUser(
+        participant.userProfileId,
         "conversation:updated",
         updatedConversation
-      );
-    });
+      )
+    );
+    await Promise.all(updatePromises);
   } catch (error) {
     console.error("Error emitting participant removal events:", error);
   }
@@ -1180,6 +1196,56 @@ const deleteMessageFromDB = async (
   };
 };
 
+const markConversationAsRead = async (
+  conversationId: string,
+  currentUserProfileId: string
+) => {
+  const participant = await prisma.conversationParticipant.findUnique({
+    where: {
+      conversationId_userProfileId: {
+        conversationId,
+        userProfileId: currentUserProfileId,
+      },
+    },
+  });
+
+  if (!participant) {
+    throw new HTTPError(
+      httpStatus.NOT_FOUND,
+      "You are not a participant in this conversation"
+    );
+  }
+
+  await prisma.conversationParticipant.update({
+    where: {
+      conversationId_userProfileId: {
+        conversationId,
+        userProfileId: currentUserProfileId,
+      },
+    },
+    data: {
+      lastReadAt: new Date(),
+    },
+  });
+
+  const updatedConversation = await getSingleConversationFromDB(
+    conversationId,
+    currentUserProfileId
+  );
+
+  try {
+    await broadcastToUser(
+      currentUserProfileId,
+      "conversation:updated",
+      updatedConversation
+    );
+  } catch (error) {
+    console.error("Error emitting conversation:updated event:", error);
+  }
+
+  return updatedConversation;
+};
+
 export const ChatService = {
   createConversationIntoDB,
   getUserConversationsFromDB,
@@ -1192,4 +1258,5 @@ export const ChatService = {
   removeParticipantFromConversation,
   editMessageInDB,
   deleteMessageFromDB,
+  markConversationAsRead,
 };

@@ -357,6 +357,34 @@ const deleteMessage = catchAsync(
   }
 );
 
+const markConversationAsRead = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id: conversationId } = req.params;
+    const currentUserProfileId = req.user?.userProfile?.id;
+
+    if (!currentUserProfileId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User profile not found",
+        data: null,
+      });
+    }
+
+    const result = await ChatService.markConversationAsRead(
+      conversationId,
+      currentUserProfileId
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Conversation marked as read successfully!",
+      data: result,
+    });
+  }
+);
+
 export const ChatController = {
   createConversation,
   createMessage,
@@ -368,4 +396,5 @@ export const ChatController = {
   removeParticipant,
   editMessage,
   deleteMessage,
+  markConversationAsRead,
 };
