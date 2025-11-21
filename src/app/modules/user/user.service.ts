@@ -2,6 +2,7 @@ import { Prisma, UserProfile } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import { uploadFileToBlob } from "../../../helpers/blobUploader";
+import { generateWelcomeEmail } from "../../../helpers/emailTemplateHelper";
 import meiliClient from "../../../shared/meilisearch";
 import prisma from "../../../shared/prismaClient";
 import {
@@ -10,6 +11,8 @@ import {
 } from "../../interfaces/paginationSorting";
 import { searchableFields } from "./user.constant";
 import { IUserFilterParams } from "./user.interface";
+import emailSender from "../auth/emailSender";
+import config from "../../../config/config";
 const meiliClientIndex = meiliClient.index("clients");
 
 // Helper function to assign default role to user
@@ -196,6 +199,8 @@ const createAdmin = async (req: any): Promise<UserProfile> => {
     req.body.admin.profilePhoto = uploadResult.url;
   }
 
+  // Store plain text password before hashing for email
+  const plainTextPassword = req.body.password;
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
   const userData = {
@@ -222,10 +227,41 @@ const createAdmin = async (req: any): Promise<UserProfile> => {
       },
     });
 
-    return newUserProfile;
+    return { newUser, newUserProfile };
   });
 
-  return result;
+  // Send welcome email after successful user creation
+  try {
+    const loginUrl = config.login_url || "http://localhost:3000/login";
+    const companyName = config.company_name || "Company";
+    const companyLogoUrl = config.company_logo_url;
+    const roleName = "Admin";
+
+    const emailHtml = await generateWelcomeEmail(
+      req.body.admin.name,
+      req.body.admin.email,
+      plainTextPassword,
+      roleName,
+      loginUrl,
+      companyName,
+      companyLogoUrl
+    );
+
+    await emailSender(req.body.admin.email, emailHtml, {
+      subject: `Welcome to ${companyName} - Your Account Details`,
+      senderName: companyName,
+    });
+
+    console.log(`Welcome email sent successfully to ${req.body.admin.email}`);
+  } catch (emailError) {
+    // Log error but don't throw - user creation should succeed even if email fails
+    console.error(
+      `Failed to send welcome email to ${req.body.admin.email}:`,
+      emailError
+    );
+  }
+
+  return result.newUserProfile;
 };
 
 const createClient = async (req: any): Promise<UserProfile> => {
@@ -241,6 +277,8 @@ const createClient = async (req: any): Promise<UserProfile> => {
       req.body.client.profilePhoto = uploadResult.url;
     }
 
+    // Store plain text password before hashing for email
+    const plainTextPassword = req.body.password;
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const userData = {
@@ -284,10 +322,41 @@ const createClient = async (req: any): Promise<UserProfile> => {
         // Don't throw here as the main operation succeeded
       }
 
-      return newUserProfile;
+      return { newUser, newUserProfile };
     });
 
-    return result;
+    // Send welcome email after successful user creation
+    try {
+      const loginUrl = config.login_url || "http://localhost:3000/login";
+      const companyName = config.company_name || "Company";
+      const companyLogoUrl = config.company_logo_url;
+      const roleName = "Client";
+
+      const emailHtml = await generateWelcomeEmail(
+        req.body.client.name,
+        req.body.client.email,
+        plainTextPassword,
+        roleName,
+        loginUrl,
+        companyName,
+        companyLogoUrl
+      );
+
+      await emailSender(req.body.client.email, emailHtml, {
+        subject: `Welcome to ${companyName} - Your Account Details`,
+        senderName: companyName,
+      });
+
+      console.log(`Welcome email sent successfully to ${req.body.client.email}`);
+    } catch (emailError) {
+      // Log error but don't throw - user creation should succeed even if email fails
+      console.error(
+        `Failed to send welcome email to ${req.body.client.email}:`,
+        emailError
+      );
+    }
+
+    return result.newUserProfile;
   } catch (error) {
     console.error("Error creating client:", error);
     throw error;
@@ -307,6 +376,8 @@ const createEmployee = async (req: any): Promise<UserProfile> => {
       req.body.employee.profilePhoto = uploadResult.url;
     }
 
+    // Store plain text password before hashing for email
+    const plainTextPassword = req.body.password;
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const userData = {
@@ -333,10 +404,41 @@ const createEmployee = async (req: any): Promise<UserProfile> => {
         },
       });
 
-      return newUserProfile;
+      return { newUser, newUserProfile };
     });
 
-    return result;
+    // Send welcome email after successful user creation
+    try {
+      const loginUrl = config.login_url || "http://localhost:3000/login";
+      const companyName = config.company_name || "Company";
+      const companyLogoUrl = config.company_logo_url;
+      const roleName = "Employee";
+
+      const emailHtml = await generateWelcomeEmail(
+        req.body.employee.name,
+        req.body.employee.email,
+        plainTextPassword,
+        roleName,
+        loginUrl,
+        companyName,
+        companyLogoUrl
+      );
+
+      await emailSender(req.body.employee.email, emailHtml, {
+        subject: `Welcome to ${companyName} - Your Account Details`,
+        senderName: companyName,
+      });
+
+      console.log(`Welcome email sent successfully to ${req.body.employee.email}`);
+    } catch (emailError) {
+      // Log error but don't throw - user creation should succeed even if email fails
+      console.error(
+        `Failed to send welcome email to ${req.body.employee.email}:`,
+        emailError
+      );
+    }
+
+    return result.newUserProfile;
   } catch (error) {
     console.error("Error creating employee:", error);
     throw error;

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to {{companyName}}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background-color: #0c164d;
+        color: #ffffff;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+        margin: -20px -20px 20px -20px;
+      }
+      .logo-container {
+        margin-bottom: 15px;
+      }
+      .logo {
+        max-width: 150px;
+        max-height: 60px;
+        height: auto;
+        display: inline-block;
+      }
+      .company-name {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+      .content {
+        margin-top: 20px;
+        line-height: 1.6;
+        color: #333333;
+      }
+      .credentials-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+      }
+      .credential-item {
+        margin: 10px 0;
+      }
+      .credential-label {
+        font-weight: bold;
+        color: #495057;
+        display: inline-block;
+        min-width: 100px;
+      }
+      .credential-value {
+        color: #212529;
+        font-family: monospace;
+        background-color: #ffffff;
+        padding: 4px 8px;
+        border-radius: 3px;
+        border: 1px solid #ced4da;
+      }
+      .button {
+        display: inline-block;
+        background-color: #0c164d;
+        color: #ffffff;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .security-note {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+        color: #856404;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6;
+        text-align: center;
+        color: #6c757d;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        {{LOGO_SECTION}}
+        <div class="company-name">{{companyName}}</div>
+        <h2 style="margin: 10px 0 0 0; font-size: 20px">Welcome!</h2>
+      </div>
+      <div class="content">
+        <p>Hello {{userName}},</p>
+        <p>
+          Your account has been successfully created. Below are your account
+          credentials:
+        </p>
+
+        <div class="credentials-box">
+          <div class="credential-item">
+            <span class="credential-label">Username:</span>
+            <span class="credential-value">{{email}}</span>
+          </div>
+          <div class="credential-item">
+            <span class="credential-label">Password:</span>
+            <span class="credential-value">{{password}}</span>
+          </div>
+          <div class="credential-item">
+            <span class="credential-label">Role:</span>
+            <span class="credential-value">{{role}}</span>
+          </div>
+        </div>
+
+        <p>
+          You can now log in to your account using the credentials above. Click
+          the button below to access the login page:
+        </p>
+
+        <div style="text-align: center">
+          <a href="{{loginUrl}}" class="button">Login to Your Account</a>
+        </div>
+
+        <div class="security-note">
+          <strong>Security Reminder:</strong> For your account security, please
+          change your password after your first login. Keep your credentials
+          confidential and do not share them with anyone.
+        </div>
+
+        <p>
+          If you have any questions or need assistance, please don't hesitate to
+          contact our support team.
+        </p>
+
+        <p>Welcome aboard!</p>
+        <p>Best regards,<br />The {{companyName}} Team</p>
+      </div>
+      <div class="footer">
+        <p>This is an automated email. Please do not reply to this message.</p>
+      </div>
+    </div>
+  </body>
+</html>
