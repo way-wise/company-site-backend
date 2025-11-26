@@ -15,9 +15,14 @@ app.get("/health", (_req: Request, res: Response) => {
 app.use(
   cors({
     origin: [
+      // Main domain
       "https://www.waywisetech.com",
       "https://waywisetech.com",
+      // Dashboard subdomain
+      "https://dashboard.waywisetech.com",
+      // Vercel deployments
       "https://company-site-frontend.vercel.app",
+      // Local development
       "http://localhost:3000",
       "http://192.168.1.30:3000",
       "http://192.168.1.46:3000",

@@ -43,11 +43,25 @@ const getEnvironmentCookieConfig = () => {
   const sameSite: CookieSameSiteOption = isProduction ? "none" : "lax";
   const secure = isProduction || sameSite === "none";
 
-  return {
+  // For production, use the configured domain to enable cross-subdomain cookies
+  // For development, don't set domain (cookies work on localhost)
+  const cookieConfig: {
+    secure: boolean;
+    sameSite: CookieSameSiteOption;
+    httpOnly: boolean;
+    domain?: string;
+  } = {
     secure,
     sameSite,
     httpOnly: true,
-  } as const;
+  };
+
+  // Set domain for production to enable cross-subdomain cookie sharing
+  if (isProduction && config.cookie_domain) {
+    cookieConfig.domain = config.cookie_domain;
+  }
+
+  return cookieConfig;
 };
 
 export const AUTH_COOKIE_KEYS = {
@@ -91,4 +105,16 @@ export const clearAuthCookies = (res: Response) => {
   const baseOptions = getEnvironmentCookieConfig();
   res.clearCookie(AUTH_COOKIE_KEYS.access, baseOptions);
   res.clearCookie(AUTH_COOKIE_KEYS.refresh, baseOptions);
+  
+  // Also clear with domain explicitly set to ensure cleanup across subdomains
+  if (config.cookie_domain) {
+    res.clearCookie(AUTH_COOKIE_KEYS.access, {
+      ...baseOptions,
+      domain: config.cookie_domain,
+    });
+    res.clearCookie(AUTH_COOKIE_KEYS.refresh, {
+      ...baseOptions,
+      domain: config.cookie_domain,
+    });
+  }
 };

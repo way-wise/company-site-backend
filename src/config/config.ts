@@ -36,4 +36,10 @@ export default {
     secret_key: process.env.STRIPE_SECRET_KEY,
     publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
   },
+  frontend_urls: {
+    public: process.env.FRONTEND_PUBLIC_URL || "https://waywisetech.com",
+    dashboard:
+      process.env.FRONTEND_DASHBOARD_URL || "https://dashboard.waywisetech.com",
+  },
+  cookie_domain: process.env.COOKIE_DOMAIN || ".waywisetech.com",
 };
