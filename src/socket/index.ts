@@ -19,9 +19,14 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   io = new SocketIOServer(httpServer, {
     cors: {
       origin: [
+        // Main domain
         "https://www.waywisetech.com",
         "https://waywisetech.com",
+        // Dashboard subdomain
+        "https://dashboard.waywisetech.com",
+        // Vercel deployments
         "https://company-site-frontend.vercel.app",
+        // Local development
         "http://localhost:3000",
         "http://192.168.1.37:3000",
       ],
