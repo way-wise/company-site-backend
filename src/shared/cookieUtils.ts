@@ -49,11 +49,13 @@ const getEnvironmentCookieConfig = () => {
     secure: boolean;
     sameSite: CookieSameSiteOption;
     httpOnly: boolean;
+    path: string;
     domain?: string;
   } = {
     secure,
     sameSite,
     httpOnly: true,
+    path: "/", // Explicit path to ensure cookies are accessible across all routes
   };
 
   // Set domain for production to enable cross-subdomain cookie sharing
@@ -86,17 +88,34 @@ export const setAuthCookies = (
   res: Response,
   tokens: { accessToken: string; refreshToken?: string }
 ) => {
+  const accessOptions = getAccessTokenCookieOptions();
+  const refreshOptions = getRefreshTokenCookieOptions();
+  
+  // Debug logging for production troubleshooting
+  if (config.env === "production") {
+    console.log("[Cookie Setting]", {
+      accessTokenLength: tokens.accessToken?.length,
+      hasRefreshToken: !!tokens.refreshToken,
+      cookieConfig: {
+        domain: accessOptions.domain,
+        secure: accessOptions.secure,
+        sameSite: accessOptions.sameSite,
+        path: accessOptions.path,
+      },
+    });
+  }
+  
   res.cookie(
     AUTH_COOKIE_KEYS.access,
     tokens.accessToken,
-    getAccessTokenCookieOptions()
+    accessOptions
   );
 
   if (tokens.refreshToken) {
     res.cookie(
       AUTH_COOKIE_KEYS.refresh,
       tokens.refreshToken,
-      getRefreshTokenCookieOptions()
+      refreshOptions
     );
   }
 };
