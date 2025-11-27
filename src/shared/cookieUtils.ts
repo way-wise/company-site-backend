@@ -49,11 +49,13 @@ const getEnvironmentCookieConfig = () => {
     secure: boolean;
     sameSite: CookieSameSiteOption;
     httpOnly: boolean;
+    path: string;
     domain?: string;
   } = {
     secure,
     sameSite,
     httpOnly: true,
+    path: "/", // Explicit path to ensure cookies are accessible across all routes
   };
 
   // Set domain for production to enable cross-subdomain cookie sharing
@@ -86,18 +88,27 @@ export const setAuthCookies = (
   res: Response,
   tokens: { accessToken: string; refreshToken?: string }
 ) => {
-  res.cookie(
-    AUTH_COOKIE_KEYS.access,
-    tokens.accessToken,
-    getAccessTokenCookieOptions()
-  );
+  const accessOptions = getAccessTokenCookieOptions();
+  const refreshOptions = getRefreshTokenCookieOptions();
+
+  // Debug logging for production troubleshooting
+  if (config.env === "production") {
+    console.log("[Cookie Setting]", {
+      accessTokenLength: tokens.accessToken?.length,
+      hasRefreshToken: !!tokens.refreshToken,
+      cookieConfig: {
+        domain: accessOptions.domain,
+        secure: accessOptions.secure,
+        sameSite: accessOptions.sameSite,
+        path: accessOptions.path,
+      },
+    });
+  }
+
+  res.cookie(AUTH_COOKIE_KEYS.access, tokens.accessToken, accessOptions);
 
   if (tokens.refreshToken) {
-    res.cookie(
-      AUTH_COOKIE_KEYS.refresh,
-      tokens.refreshToken,
-      getRefreshTokenCookieOptions()
-    );
+    res.cookie(AUTH_COOKIE_KEYS.refresh, tokens.refreshToken, refreshOptions);
   }
 };
 
@@ -105,7 +116,7 @@ export const clearAuthCookies = (res: Response) => {
   const baseOptions = getEnvironmentCookieConfig();
   res.clearCookie(AUTH_COOKIE_KEYS.access, baseOptions);
   res.clearCookie(AUTH_COOKIE_KEYS.refresh, baseOptions);
-  
+
   // Also clear with domain explicitly set to ensure cleanup across subdomains
   if (config.cookie_domain) {
     res.clearCookie(AUTH_COOKIE_KEYS.access, {
