@@ -90,7 +90,7 @@ export const setAuthCookies = (
 ) => {
   const accessOptions = getAccessTokenCookieOptions();
   const refreshOptions = getRefreshTokenCookieOptions();
-  
+
   // Debug logging for production troubleshooting
   if (config.env === "production") {
     console.log("[Cookie Setting]", {
@@ -104,19 +104,11 @@ export const setAuthCookies = (
       },
     });
   }
-  
-  res.cookie(
-    AUTH_COOKIE_KEYS.access,
-    tokens.accessToken,
-    accessOptions
-  );
+
+  res.cookie(AUTH_COOKIE_KEYS.access, tokens.accessToken, accessOptions);
 
   if (tokens.refreshToken) {
-    res.cookie(
-      AUTH_COOKIE_KEYS.refresh,
-      tokens.refreshToken,
-      refreshOptions
-    );
+    res.cookie(AUTH_COOKIE_KEYS.refresh, tokens.refreshToken, refreshOptions);
   }
 };
 
@@ -124,7 +116,7 @@ export const clearAuthCookies = (res: Response) => {
   const baseOptions = getEnvironmentCookieConfig();
   res.clearCookie(AUTH_COOKIE_KEYS.access, baseOptions);
   res.clearCookie(AUTH_COOKIE_KEYS.refresh, baseOptions);
-  
+
   // Also clear with domain explicitly set to ensure cleanup across subdomains
   if (config.cookie_domain) {
     res.clearCookie(AUTH_COOKIE_KEYS.access, {
