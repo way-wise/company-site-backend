@@ -71,12 +71,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Explicit OPTIONS handler for preflight requests
-app.options("*", (req: Request, res: Response) => {
-  console.log(`[CORS] Handling OPTIONS preflight for ${req.path}`);
-  res.status(200).end();
-});
-
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/v1", router);
