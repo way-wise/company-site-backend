@@ -37,7 +37,7 @@ const getCookieOptions = () => {
   return {
     secure: isProduction, // Production এ true, development এ false
     httpOnly: true,
-    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    // sameSite: isProduction ? ("none" as const) : ("lax" as const),
     domain: isProduction ? config.cookie_domain : undefined, // Production এ .waywisetech.com
     path: "/",
   };
