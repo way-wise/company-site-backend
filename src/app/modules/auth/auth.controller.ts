@@ -35,6 +35,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
 const getMe = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
+    console.log("getMe", req.user);
     const user = req.user;
     const result = await authServices.getMe(user);
 
