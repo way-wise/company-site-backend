@@ -22,6 +22,9 @@ const allowedOrigins = [
   // Vercel deployments
   "https://company-site-frontend.vercel.app",
   // Local development
+  "https://api2.waywisetech.com",
+  "http://192.168.0.104:3000",
+  "http://192.168.1.72:3000",
   "http://localhost:3000",
   "http://192.168.1.30:3000",
   "http://192.168.1.46:3000",
