@@ -69,7 +69,8 @@ model User {
   updatedAt                DateTime             @updatedAt
   isPasswordChangeRequired Boolean              @default(true)
   refreshToken             String?
-  milestonePayments        MilestonePayment[]
+  milestonePayments        MilestonePayment[]   @relation("UserPayments")
+  processedPayments        MilestonePayment[]   @relation("ProcessedPayments")
   paymentMethods           PaymentMethod[]
   userProfile              UserProfile?
   roles                    UserRoleAssignment[]
@@ -405,26 +406,38 @@ model PaymentMethod {
   @@map("payment_methods")
 }
 
+enum PaymentType {
+  STRIPE
+  MANUAL
+}
+
 model MilestonePayment {
-  id                    String        @id @default(ulid())
+  id                    String         @id @default(ulid())
   milestoneId           String
   userId                String
   amount                Decimal
-  stripePaymentIntentId String
+  paymentType           PaymentType    @default(STRIPE)
+  stripePaymentIntentId String?
   stripeChargeId        String?
-  paymentMethodId       String
-  status                String        @default("succeeded")
-  invoiceNumber         String        @unique
-  paidAt                DateTime      @default(now())
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  milestone             Milestone     @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  paymentMethod         PaymentMethod @relation(fields: [paymentMethodId], references: [id])
-  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethodId       String?
+  manualPaymentMethod   String?
+  notes                 String?        @db.Text
+  processedBy           String?
+  status                String         @default("succeeded")
+  invoiceNumber         String         @unique
+  paidAt                DateTime       @default(now())
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  milestone             Milestone      @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  paymentMethod         PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  processor             User?          @relation("ProcessedPayments", fields: [processedBy], references: [id])
+  user                  User           @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([milestoneId])
   @@index([userId])
   @@index([invoiceNumber])
+  @@index([paymentType])
+  @@index([processedBy])
   @@map("milestone_payments")
 }
 

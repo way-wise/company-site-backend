@@ -1,4 +1,5 @@
 import express from "express";
+import permissionGuard from "../../middlewares/permissionGuard";
 import roleGuard from "../../middlewares/roleGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { PaymentController } from "./payment.controller";
@@ -66,6 +67,14 @@ router.get(
   roleGuard("CLIENT"),
   validateRequest(paymentValidationSchemas.getPaymentInvoice),
   PaymentController.getPaymentInvoice
+);
+
+// Admin manual payment route
+router.post(
+  "/milestones/:milestoneId/mark-paid-manually",
+  permissionGuard("manage_manual_payment"),
+  validateRequest(paymentValidationSchemas.markMilestoneAsPaidManually),
+  PaymentController.markMilestoneAsPaidManually
 );
 
 export const PaymentRoutes = router;

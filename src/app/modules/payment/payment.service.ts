@@ -647,6 +647,149 @@ const getPaymentInvoice = async (paymentId: string, userId: string) => {
   return payment;
 };
 
+interface MarkMilestoneAsPaidData {
+  amount: number;
+  paidAt: Date;
+  manualPaymentMethod: string;
+  notes?: string;
+}
+
+const markMilestoneAsPaidManually = async (
+  adminUserId: string,
+  milestoneId: string,
+  data: MarkMilestoneAsPaidData
+) => {
+  // Validate milestone exists
+  const milestone = await prisma.milestone.findUnique({
+    where: { id: milestoneId },
+    include: {
+      project: {
+        include: {
+          userProfile: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!milestone) {
+    throw new HTTPError(httpStatus.NOT_FOUND, "Milestone not found");
+  }
+
+  // Check if milestone is already paid
+  if (milestone.paymentStatus === "PAID") {
+    throw new HTTPError(
+      httpStatus.BAD_REQUEST,
+      "Milestone is already marked as paid"
+    );
+  }
+
+  // Validate amount matches milestone cost if cost is set
+  if (milestone.cost) {
+    const costValue = Number(milestone.cost);
+    if (Math.abs(costValue - data.amount) > 0.01) {
+      throw new HTTPError(
+        httpStatus.BAD_REQUEST,
+        `Amount must match milestone cost of $${costValue.toFixed(2)}`
+      );
+    }
+  }
+
+  try {
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Create manual payment record
+    const paymentRecord = await prisma.milestonePayment.create({
+      data: {
+        milestoneId,
+        userId: milestone.project.userProfile.userId,
+        amount: data.amount,
+        paymentType: "MANUAL",
+        manualPaymentMethod: data.manualPaymentMethod,
+        notes: data.notes,
+        processedBy: adminUserId,
+        status: "succeeded",
+        invoiceNumber,
+        paidAt: data.paidAt,
+      },
+    });
+
+    // Update milestone payment status
+    await prisma.milestone.update({
+      where: { id: milestoneId },
+      data: { paymentStatus: "PAID" },
+    });
+
+    // Send payment notification to project owner
+    await createAndEmitNotification({
+      userProfileId: milestone.project.userProfile.id,
+      type: "PAYMENT",
+      title: "Payment Received",
+      message: `Manual payment of $${data.amount.toFixed(2)} recorded for milestone "${milestone.name}" in project "${milestone.project.name}"`,
+      data: {
+        paymentId: paymentRecord.id,
+        milestoneId: milestone.id,
+        milestoneName: milestone.name,
+        amount: data.amount,
+        invoiceNumber,
+        projectId: milestone.project.id,
+        paymentType: "MANUAL",
+      },
+    });
+
+    // Fetch the complete payment record with relations
+    const completePayment = await prisma.milestonePayment.findUnique({
+      where: { id: paymentRecord.id },
+      include: {
+        milestone: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            cost: true,
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        processor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return completePayment;
+  } catch (error) {
+    // If it's already an HTTPError, re-throw it
+    if (error instanceof HTTPError) {
+      throw error;
+    }
+    // Generic error
+    throw new HTTPError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error instanceof Error ? error.message : "Failed to mark payment as paid"
+    );
+  }
+};
+
 export const PaymentService = {
   createSetupIntent,
   attachPaymentMethod,
@@ -657,5 +800,6 @@ export const PaymentService = {
   getMilestonePayments,
   getUserPayments,
   getPaymentInvoice,
+  markMilestoneAsPaidManually,
 };
 

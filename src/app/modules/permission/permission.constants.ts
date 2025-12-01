@@ -382,4 +382,9 @@ export const DEFAULT_PERMISSIONS = [
     group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
     description: "Delete expenses",
   },
+  {
+    name: "manage_manual_payment",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Manually mark milestone payments as paid",
+  },
 ];
