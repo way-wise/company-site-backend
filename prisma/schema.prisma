@@ -259,18 +259,28 @@ model ServiceMilestone {
 }
 
 model Blog {
-  id            String      @id @default(ulid())
-  title         String
-  content       String
-  coverImage    String?
-  visibility    Visibility  @default(PUBLIC)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  userProfileId String
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  comments      Comment[]
+  id              String      @id @default(ulid())
+  title           String
+  content         String      @db.Text
+  excerpt         String?     @db.Text
+  featuredImage   String?
+  coverImage      String?     // Keep for backward compatibility
+  status          BlogStatus  @default(DRAFT)
+  tags            Json?       // Array of strings stored as JSON
+  metaTitle       String?
+  metaDescription String?    @db.Text
+  slug            String      @unique
+  publishedAt     DateTime?
+  visibility      Visibility  @default(PUBLIC)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userProfileId   String
+  userProfile     UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  comments        Comment[]
 
   @@index([visibility])
+  @@index([status])
+  @@index([slug])
   @@map("blogs")
 }
 
@@ -633,4 +643,10 @@ enum ConversationType {
   DIRECT
   GROUP
   PROJECT
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
