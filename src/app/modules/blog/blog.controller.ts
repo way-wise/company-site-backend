@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import { uploadFileToBlob } from "../../../helpers/blobUploader";
+import { UploadedFile } from "../../interfaces/file";
 import { paginationAndSortingParams } from "../../../shared/appConstants";
 import catchAsync from "../../../shared/catchAsync";
 import { filterValidQueryParams } from "../../../shared/filterValidQueryParams";
@@ -202,6 +204,52 @@ const getBlogStats = catchAsync(
   }
 );
 
+const uploadImage = catchAsync(async (req: Request, res: Response) => {
+  const file = req.file as unknown as UploadedFile;
+
+  if (!file) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: "No image file provided",
+      data: null,
+    });
+  }
+
+  // Validate file type (images only)
+  const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  if (!allowedMimeTypes.includes(file.mimetype)) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: "Invalid file type. Only images (JPEG, PNG, GIF, WebP) are allowed",
+      data: null,
+    });
+  }
+
+  try {
+    // Upload file to blob storage
+    const uploadResult = await uploadFileToBlob(file, {
+      prefix: "blogs/images",
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Image uploaded successfully!",
+      data: { url: uploadResult.url },
+    });
+  } catch (error) {
+    console.error("Image upload error:", error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to upload image",
+      data: null,
+    });
+  }
+});
+
 export const BlogController = {
   createBlog,
   getAllBlogs,
@@ -211,5 +259,6 @@ export const BlogController = {
   updateBlog,
   deleteBlog,
   getBlogStats,
+  uploadImage,
 };
 

@@ -206,6 +206,7 @@ async function main() {
       "read_leave",
       "update_leave",
       "read_service",
+      "read_blog",
     ];
 
     const employeePermissions = await prisma.permission.findMany({

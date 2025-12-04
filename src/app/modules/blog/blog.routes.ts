@@ -1,4 +1,5 @@
 import express from "express";
+import { fileUploader } from "../../../helpers/fileUploader";
 import permissionGuard from "../../middlewares/permissionGuard";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { BlogController } from "./blog.controller";
@@ -11,6 +12,13 @@ router.get("/public", BlogController.getPublicBlogs);
 router.get("/slug/:slug", BlogController.getBlogBySlug);
 
 // Protected routes
+router.post(
+  "/upload-image",
+  permissionGuard("create_blog"),
+  fileUploader.upload.single("image"),
+  BlogController.uploadImage
+);
+
 router.post(
   "/",
   permissionGuard("create_blog"),

@@ -1,4 +1,4 @@
-import { Prisma, Blog } from "@prisma/client";
+import { Blog, Prisma } from "@prisma/client";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import prisma from "../../../shared/prismaClient";
 import {
@@ -28,7 +28,7 @@ const transformBlogData = (blog: any) => {
 
   return {
     ...blog,
-    status: blog.status?.toLowerCase() || "draft",
+    status: blog.status || "DRAFT",
     tags,
     publishedAt: blog.publishedAt ? blog.publishedAt.toISOString() : undefined,
     createdAt: blog.createdAt.toISOString(),
@@ -56,7 +56,10 @@ const generateSlug = (title: string): string => {
 };
 
 // Helper function to ensure unique slug
-const ensureUniqueSlug = async (baseSlug: string, excludeId?: string): Promise<string> => {
+const ensureUniqueSlug = async (
+  baseSlug: string,
+  excludeId?: string
+): Promise<string> => {
   let slug = baseSlug;
   let counter = 1;
 
@@ -111,8 +114,10 @@ const createBlogIntoDB = async (data: {
       content: data.content,
       excerpt: data.excerpt,
       featuredImage: data.featuredImage,
-      status: (data.status?.toUpperCase() as "DRAFT" | "PUBLISHED" | "ARCHIVED") || "DRAFT",
-      tags: data.tags ? (data.tags as unknown as Prisma.JsonArray) : null,
+      status:
+        (data.status?.toUpperCase() as "DRAFT" | "PUBLISHED" | "ARCHIVED") ||
+        "DRAFT",
+      tags: data.tags ? (data.tags as unknown as Prisma.JsonArray) : [],
       metaTitle: data.metaTitle,
       metaDescription: data.metaDescription,
       slug,
@@ -366,9 +371,7 @@ const updateBlogIntoDB = async (
       status: data.status
         ? (data.status.toUpperCase() as "DRAFT" | "PUBLISHED" | "ARCHIVED")
         : undefined,
-      tags: data.tags
-        ? (data.tags as unknown as Prisma.JsonArray)
-        : undefined,
+      tags: data.tags ? (data.tags as unknown as Prisma.JsonArray) : undefined,
     },
     include: {
       userProfile: {
@@ -433,4 +436,3 @@ export const BlogService = {
   deleteBlogFromDB,
   getBlogStatsFromDB,
 };
-

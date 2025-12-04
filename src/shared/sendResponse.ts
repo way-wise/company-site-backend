@@ -11,7 +11,7 @@ export const sendResponse = <T>(
          limit: number;
          total: number;
       };
-      data: T | null | undefined;
+      data?: T | null | undefined;
    }
 ) => {
    res.status(jsonData.statusCode).json({
