@@ -9,7 +9,7 @@ import { HTTPError } from "../../errors/HTTPError";
 import { VerifiedUser } from "../../interfaces/common";
 
 const loginUser = async (payload: { email: string; password: string }) => {
-  const userData = await prisma.user.findUniqueOrThrow({
+  const userData = await prisma.user.findUnique({
     where: {
       email: payload.email,
       status: UserStatus.ACTIVE,
@@ -31,6 +31,10 @@ const loginUser = async (payload: { email: string; password: string }) => {
       },
     },
   });
+
+  if (!userData) {
+    throw new HTTPError(httpStatus.UNAUTHORIZED, "Invalid email or password");
+  }
 
   const isCorrectPassword = await bcrypt.compare(
     payload.password,
