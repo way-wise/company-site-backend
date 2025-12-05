@@ -1,12 +1,15 @@
 import { Gender, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
+import * as fs from "fs";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
+import * as path from "path";
 import config from "../../../config/config";
 import { jwtHelpers } from "../../../helpers/jwtHelper";
 import prisma from "../../../shared/prismaClient";
 import { HTTPError } from "../../errors/HTTPError";
 import { VerifiedUser } from "../../interfaces/common";
+import emailSender from "./emailSender";
 
 const loginUser = async (payload: { email: string; password: string }) => {
   const userData = await prisma.user.findUnique({
@@ -269,10 +272,127 @@ const registerUser = async (payload: {
   };
 };
 
+const forgotPassword = async (email: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  // Return generic message to prevent email enumeration
+  if (!userData) {
+    return {
+      message: "If an account with that email exists, a password reset link has been sent.",
+    };
+  }
+
+  const resetToken = jwtHelpers.generateToken(
+    { email: userData.email, id: userData.id },
+    config.jwt.reset_password_token_secret as Secret,
+    config.jwt.reset_token_expires_in as string || "1h"
+  );
+
+  const resetPasswordLink = `${config.reset_pass_link}?token=${resetToken}`;
+
+  // Read and populate the email template
+  const templatePath = path.join(process.cwd(), "src/templates/reset_pass_template.html");
+  let htmlTemplate = fs.readFileSync(templatePath, "utf-8");
+  htmlTemplate = htmlTemplate.replace("{{resetPasswordLink}}", resetPasswordLink);
+
+  await emailSender(userData.email, htmlTemplate, {
+    subject: "Password Reset Request",
+    senderName: config.company_name || "Way Wise Tech",
+  });
+
+  return {
+    message: "If an account with that email exists, a password reset link has been sent.",
+  };
+};
+
+const resetPassword = async (token: string, newPassword: string) => {
+  let decodedData;
+  try {
+    decodedData = jwtHelpers.verifyToken(
+      token,
+      config.jwt.reset_password_token_secret as Secret
+    );
+  } catch (err) {
+    throw new HTTPError(httpStatus.BAD_REQUEST, "Invalid or expired reset token");
+  }
+
+  const userData = await prisma.user.findUnique({
+    where: {
+      email: decodedData.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  if (!userData) {
+    throw new HTTPError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: {
+      password: hashedPassword,
+      isPasswordChangeRequired: false,
+    },
+  });
+
+  return {
+    message: "Password reset successfully",
+  };
+};
+
+const changePassword = async (
+  user: VerifiedUser,
+  payload: { currentPassword: string; newPassword: string }
+) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      email: user.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  if (!userData) {
+    throw new HTTPError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const isCorrectPassword = await bcrypt.compare(
+    payload.currentPassword,
+    userData.password
+  );
+
+  if (!isCorrectPassword) {
+    throw new HTTPError(httpStatus.UNAUTHORIZED, "Current password is incorrect");
+  }
+
+  const hashedPassword = await bcrypt.hash(payload.newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: {
+      password: hashedPassword,
+      isPasswordChangeRequired: false,
+    },
+  });
+
+  return {
+    message: "Password changed successfully",
+  };
+};
+
 export const authServices = {
   loginUser,
   registerUser,
   refreshToken,
   getMe,
   logout,
+  forgotPassword,
+  resetPassword,
+  changePassword,
 };

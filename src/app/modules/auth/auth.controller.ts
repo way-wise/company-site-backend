@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import { clearAuthCookies, setAuthCookies } from "../../../shared/cookieUtils";
 import { sendResponse } from "../../../shared/sendResponse";
+import { VerifiedUser } from "../../interfaces/common";
 import { authServices } from "./auth.services";
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
@@ -75,10 +76,51 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const result = await authServices.forgotPassword(email);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+  const result = await authServices.resetPassword(token, newPassword);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const changePassword = catchAsync(
+  async (req: Request & { user?: VerifiedUser }, res: Response) => {
+    const user = req.user;
+    const result = await authServices.changePassword(user!, req.body);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.message,
+      data: null,
+    });
+  }
+);
+
 export const authController = {
   loginUser,
   registerUser,
   refreshToken,
   getMe,
   logout,
+  forgotPassword,
+  resetPassword,
+  changePassword,
 };
