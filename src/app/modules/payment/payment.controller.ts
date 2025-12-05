@@ -220,6 +220,41 @@ const getPaymentInvoice = catchAsync(
   }
 );
 
+const markMilestoneAsPaidManually = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const adminUserId = req.user?.id;
+    const { milestoneId } = req.params;
+    const { amount, paidAt, manualPaymentMethod, notes } = req.body;
+
+    if (!adminUserId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User not authenticated",
+        data: null,
+      });
+    }
+
+    const result = await PaymentService.markMilestoneAsPaidManually(
+      adminUserId,
+      milestoneId,
+      {
+        amount,
+        paidAt: new Date(paidAt),
+        manualPaymentMethod,
+        notes,
+      }
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Milestone marked as paid successfully",
+      data: result,
+    });
+  }
+);
+
 export const PaymentController = {
   createSetupIntent,
   attachPaymentMethod,
@@ -230,5 +265,6 @@ export const PaymentController = {
   getMilestonePayments,
   getUserPayments,
   getPaymentInvoice,
+  markMilestoneAsPaidManually,
 };
 

@@ -200,14 +200,29 @@ export const DEFAULT_PERMISSIONS = [
     description: "View blog details",
   },
   {
+    name: "view_all_blogs",
+    group: PERMISSION_GROUPS.BLOG_MANAGEMENT,
+    description: "View all blogs (not just own)",
+  },
+  {
     name: "update_blog",
     group: PERMISSION_GROUPS.BLOG_MANAGEMENT,
     description: "Update blog information",
   },
   {
+    name: "update_all_blogs",
+    group: PERMISSION_GROUPS.BLOG_MANAGEMENT,
+    description: "Update any blog",
+  },
+  {
     name: "delete_blog",
     group: PERMISSION_GROUPS.BLOG_MANAGEMENT,
     description: "Delete blogs",
+  },
+  {
+    name: "delete_all_blogs",
+    group: PERMISSION_GROUPS.BLOG_MANAGEMENT,
+    description: "Delete any blog",
   },
 
   // Comment Management
@@ -381,5 +396,10 @@ export const DEFAULT_PERMISSIONS = [
     name: "delete_expense",
     group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
     description: "Delete expenses",
+  },
+  {
+    name: "manage_manual_payment",
+    group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
+    description: "Manually mark milestone payments as paid",
   },
 ];

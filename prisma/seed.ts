@@ -95,8 +95,11 @@ async function main() {
       // Blog Management
       "create_blog",
       "read_blog",
+      "view_all_blogs",
       "update_blog",
+      "update_all_blogs",
       "delete_blog",
+      "delete_all_blogs",
 
       // Comment Management
       "read_comment",
@@ -203,6 +206,7 @@ async function main() {
       "read_leave",
       "update_leave",
       "read_service",
+      "read_blog",
     ];
 
     const employeePermissions = await prisma.permission.findMany({

@@ -1,6 +1,7 @@
 import express from "express";
 import { AdminRoutes } from "../modules/admin/admin.routes";
 import { authRoutes } from "../modules/auth/auth.routes";
+import { BlogRoutes } from "../modules/blog/blog.routes";
 import { ChatRoutes } from "../modules/chat/chat.routes";
 import { leaveRoutes } from "../modules/leave/leave.routes";
 import { leaveBalanceRoutes } from "../modules/leaveBalance/leaveBalance.routes";
@@ -33,6 +34,10 @@ const moduleRoutes = [
   {
     path: "/auth",
     route: authRoutes,
+  },
+  {
+    path: "/blogs",
+    route: BlogRoutes,
   },
   {
     path: "/chat",

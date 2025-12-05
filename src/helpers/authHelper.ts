@@ -128,6 +128,7 @@ const fetchUserWithPermissions = async (
     ...(payload ?? {}),
     email: user.email,
     id: user.id,
+    userProfileId: user.userProfile?.id,
     roles: user.roles.map((ur) => ur.role),
     userProfile: user.userProfile,
     permissions,

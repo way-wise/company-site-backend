@@ -33,6 +33,20 @@ const getPaymentInvoice = z.object({
   }),
 });
 
+const markMilestoneAsPaidManually = z.object({
+  params: z.object({
+    milestoneId: z.string().min(1, "Milestone ID is required"),
+  }),
+  body: z.object({
+    amount: z.number().positive("Amount must be positive"),
+    paidAt: z.string().refine((val) => !isNaN(Date.parse(val)), {
+      message: "Invalid date format",
+    }),
+    manualPaymentMethod: z.string().min(1, "Payment method is required"),
+    notes: z.string().optional(),
+  }),
+});
+
 export const paymentValidationSchemas = {
   createSetupIntent,
   attachPaymentMethod,
@@ -40,5 +54,6 @@ export const paymentValidationSchemas = {
   processMilestonePayment,
   getMilestonePayments,
   getPaymentInvoice,
+  markMilestoneAsPaidManually,
 };
 

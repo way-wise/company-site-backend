@@ -69,7 +69,8 @@ model User {
   updatedAt                DateTime             @updatedAt
   isPasswordChangeRequired Boolean              @default(true)
   refreshToken             String?
-  milestonePayments        MilestonePayment[]
+  milestonePayments        MilestonePayment[]   @relation("UserPayments")
+  processedPayments        MilestonePayment[]   @relation("ProcessedPayments")
   paymentMethods           PaymentMethod[]
   userProfile              UserProfile?
   roles                    UserRoleAssignment[]
@@ -258,18 +259,28 @@ model ServiceMilestone {
 }
 
 model Blog {
-  id            String      @id @default(ulid())
-  title         String
-  content       String
-  coverImage    String?
-  visibility    Visibility  @default(PUBLIC)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  userProfileId String
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  comments      Comment[]
+  id              String      @id @default(ulid())
+  title           String
+  content         String      @db.Text
+  excerpt         String?     @db.Text
+  featuredImage   String?
+  coverImage      String?     // Keep for backward compatibility
+  status          BlogStatus  @default(DRAFT)
+  tags            Json?       // Array of strings stored as JSON
+  metaTitle       String?
+  metaDescription String?    @db.Text
+  slug            String      @unique
+  publishedAt     DateTime?
+  visibility      Visibility  @default(PUBLIC)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userProfileId   String
+  userProfile     UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  comments        Comment[]
 
   @@index([visibility])
+  @@index([status])
+  @@index([slug])
   @@map("blogs")
 }
 
@@ -405,26 +416,38 @@ model PaymentMethod {
   @@map("payment_methods")
 }
 
+enum PaymentType {
+  STRIPE
+  MANUAL
+}
+
 model MilestonePayment {
-  id                    String        @id @default(ulid())
+  id                    String         @id @default(ulid())
   milestoneId           String
   userId                String
   amount                Decimal
-  stripePaymentIntentId String
+  paymentType           PaymentType    @default(STRIPE)
+  stripePaymentIntentId String?
   stripeChargeId        String?
-  paymentMethodId       String
-  status                String        @default("succeeded")
-  invoiceNumber         String        @unique
-  paidAt                DateTime      @default(now())
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  milestone             Milestone     @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  paymentMethod         PaymentMethod @relation(fields: [paymentMethodId], references: [id])
-  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethodId       String?
+  manualPaymentMethod   String?
+  notes                 String?        @db.Text
+  processedBy           String?
+  status                String         @default("succeeded")
+  invoiceNumber         String         @unique
+  paidAt                DateTime       @default(now())
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  milestone             Milestone      @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  paymentMethod         PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  processor             User?          @relation("ProcessedPayments", fields: [processedBy], references: [id])
+  user                  User           @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([milestoneId])
   @@index([userId])
   @@index([invoiceNumber])
+  @@index([paymentType])
+  @@index([processedBy])
   @@map("milestone_payments")
 }
 
@@ -620,4 +643,10 @@ enum ConversationType {
   DIRECT
   GROUP
   PROJECT
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
