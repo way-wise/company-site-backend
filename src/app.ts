@@ -23,7 +23,7 @@ const allowedOrigins = [
   "https://company-site-frontend.vercel.app",
   // Local development
   "https://api.waywisetech.com",
-  "https://localhost:3000",
+  "http://localhost:3000",
 ];
 
 app.use(
