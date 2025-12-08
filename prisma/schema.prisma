@@ -264,7 +264,7 @@ model Blog {
   content         String      @db.Text
   excerpt         String?     @db.Text
   featuredImage   String?
-  coverImage      String?     // Keep for backward compatibility
+  coverImage      String? // Keep for backward compatibility
   status          BlogStatus  @default(DRAFT)
   tags            Json?       // Array of strings stored as JSON
   metaTitle       String?
@@ -649,4 +649,18 @@ enum BlogStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+model Contact {
+  id                 String   @id @default(ulid())
+  fullName           String
+  email              String
+  whatsappNumber     String
+  serviceRequired    String
+  projectBudget      String
+  projectDescription String   @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("contacts")
 }
