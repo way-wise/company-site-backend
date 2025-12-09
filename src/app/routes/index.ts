@@ -20,6 +20,7 @@ import { roleRoutes } from "../modules/role/role.routes";
 import { ServiceRoutes } from "../modules/service/service.routes";
 import { TaskRoutes } from "../modules/task/task.routes";
 import { userRoutes } from "../modules/user/user.routes";
+import { FaqRoutes } from "../modules/faq/faq.routes";
 
 const router = express.Router();
 
@@ -107,6 +108,10 @@ const moduleRoutes = [
 	{
 		path: "/contact",
 		route: ContactRoutes,
+	},
+	{
+		path: "/faqs",
+		route: FaqRoutes,
 	},
 ];
 
