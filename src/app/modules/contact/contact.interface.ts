@@ -6,3 +6,7 @@ export type IContact = {
 	projectBudget: string;
 	projectDescription: string;
 };
+
+export type IContactFilterRequest = {
+	searchTerm?: string;
+};
