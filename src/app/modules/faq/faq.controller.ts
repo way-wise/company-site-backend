@@ -24,6 +24,10 @@ const getAllFaqs = catchAsync(async (req: Request, res: Response) => {
 		"category",
 		"isShow",
 	]);
+
+	if (filters.isShow) {
+		(filters as any).isShow = filters.isShow === "true";
+	}
 	const options = filterValidQueryParams(req.query, paginationAndSortingParams);
 
 	const result = await FaqService.getAllFaqs(filters, options);
