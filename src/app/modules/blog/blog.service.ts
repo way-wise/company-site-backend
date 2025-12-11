@@ -82,6 +82,7 @@ const ensureUniqueSlug = async (
 
 const createBlogIntoDB = async (data: {
   title: string;
+  slug?: string;
   content: string;
   excerpt?: string;
   featuredImage?: string;
@@ -100,8 +101,8 @@ const createBlogIntoDB = async (data: {
     throw new Error(`UserProfile with id ${data.userProfileId} not found`);
   }
 
-  // Generate slug from title
-  const baseSlug = generateSlug(data.title);
+  // Use custom slug if provided, otherwise generate from title
+  const baseSlug = data.slug || generateSlug(data.title);
   const slug = await ensureUniqueSlug(baseSlug);
 
   // Set publishedAt if status is PUBLISHED (handle both uppercase and lowercase)
@@ -327,6 +328,7 @@ const updateBlogIntoDB = async (
   id: string,
   data: {
     title?: string;
+    slug?: string;
     content?: string;
     excerpt?: string;
     featuredImage?: string;
@@ -342,9 +344,13 @@ const updateBlogIntoDB = async (
     },
   });
 
-  // Generate new slug if title changed
+  // Handle slug changes
   let slug = existingBlog.slug;
-  if (data.title && data.title !== existingBlog.title) {
+  if (data.slug !== undefined) {
+    // Custom slug provided - use it
+    slug = await ensureUniqueSlug(data.slug, id);
+  } else if (data.title && data.title !== existingBlog.title) {
+    // Title changed but no custom slug - auto-generate
     const baseSlug = generateSlug(data.title);
     slug = await ensureUniqueSlug(baseSlug, id);
   }
