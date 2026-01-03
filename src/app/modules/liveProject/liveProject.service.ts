@@ -32,7 +32,7 @@ const createLiveProjectIntoDB = async (data: {
   projectType: "FIXED" | "HOURLY";
   projectBudget?: number | null;
   paidAmount?: number | null;
-  assignedMembers: string[];
+  assignedMembers: string;
   projectStatus?: "PENDING" | "ACTIVE" | "ON_HOLD" | "COMPLETED";
   dailyNotes?: IDailyNote[];
   nextActions?: string;
