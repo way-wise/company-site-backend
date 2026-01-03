@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "live_projects" ALTER COLUMN "projectBudget" DROP NOT NULL,
+ALTER COLUMN "paidAmount" DROP NOT NULL,
+ALTER COLUMN "paidAmount" DROP DEFAULT,
+ALTER COLUMN "dueAmount" DROP NOT NULL;

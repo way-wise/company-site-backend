@@ -10,9 +10,17 @@ import { searchableFields } from "./liveProject.constants";
 import { IDailyNote, ILiveProjectFilterParams } from "./liveProject.interface";
 
 const calculateDueAmount = (
-  projectBudget: number | Decimal,
-  paidAmount: number | Decimal
-): Decimal => {
+  projectBudget: number | Decimal | null | undefined,
+  paidAmount: number | Decimal | null | undefined
+): Decimal | null => {
+  // For HOURLY projects, return null
+  if (projectBudget === null || projectBudget === undefined) {
+    return null;
+  }
+  if (paidAmount === null || paidAmount === undefined) {
+    return null;
+  }
+  
   const budget = typeof projectBudget === "number" ? projectBudget : Number(projectBudget);
   const paid = typeof paidAmount === "number" ? paidAmount : Number(paidAmount);
   return new Decimal(Math.max(0, budget - paid));
@@ -22,8 +30,8 @@ const createLiveProjectIntoDB = async (data: {
   clientName: string;
   clientLocation?: string;
   projectType: "FIXED" | "HOURLY";
-  projectBudget: number;
-  paidAmount?: number;
+  projectBudget?: number | null;
+  paidAmount?: number | null;
   assignedMembers: string[];
   projectStatus?: "PENDING" | "ACTIVE" | "ON_HOLD" | "COMPLETED";
   dailyNotes?: IDailyNote[];
@@ -50,10 +58,25 @@ const createLiveProjectIntoDB = async (data: {
     }
   }
 
-  const paidAmount = data.paidAmount ?? 0;
-  const projectBudget = new Decimal(data.projectBudget);
-  const paidAmountDecimal = new Decimal(paidAmount);
-  const dueAmount = calculateDueAmount(projectBudget, paidAmountDecimal);
+  // Handle FIXED vs HOURLY projects
+  let projectBudget: Decimal | null = null;
+  let paidAmountDecimal: Decimal | null = null;
+  let dueAmount: Decimal | null = null;
+
+  if (data.projectType === "FIXED") {
+    if (data.projectBudget === undefined || data.projectBudget === null) {
+      throw new Error("Project budget is required for FIXED projects");
+    }
+    const paidAmount = data.paidAmount ?? 0;
+    projectBudget = new Decimal(data.projectBudget);
+    paidAmountDecimal = new Decimal(paidAmount);
+    dueAmount = calculateDueAmount(projectBudget, paidAmountDecimal);
+  } else {
+    // HOURLY projects don't have budget/paid/due amounts
+    projectBudget = null;
+    paidAmountDecimal = null;
+    dueAmount = null;
+  }
 
   // Initialize dailyNotes with createdAt if provided
   const dailyNotes = data.dailyNotes
@@ -145,8 +168,8 @@ const updateLiveProjectIntoDB = async (
     clientName: string;
     clientLocation: string;
     projectType: "FIXED" | "HOURLY";
-    projectBudget: number;
-    paidAmount: number;
+    projectBudget: number | null;
+    paidAmount: number | null;
     assignedMembers: string[];
     projectStatus: "PENDING" | "ACTIVE" | "ON_HOLD" | "COMPLETED";
     dailyNotes: IDailyNote[];
@@ -180,16 +203,54 @@ const updateLiveProjectIntoDB = async (
     }
   }
 
-  // Calculate dueAmount - always recalculate
-  const projectBudget =
-    data.projectBudget !== undefined
-      ? new Decimal(data.projectBudget)
-      : existingProject.projectBudget;
-  const paidAmount =
-    data.paidAmount !== undefined
-      ? new Decimal(data.paidAmount)
-      : existingProject.paidAmount;
-  const dueAmount = calculateDueAmount(projectBudget, paidAmount);
+  // Determine the project type (use updated value if provided, otherwise existing)
+  const projectType = data.projectType ?? existingProject.projectType;
+  const isChangingToHOURLY = data.projectType === "HOURLY" || (data.projectType === undefined && existingProject.projectType === "HOURLY");
+  const isChangingToFIXED = data.projectType === "FIXED" || (data.projectType === undefined && existingProject.projectType === "FIXED");
+
+  // Calculate projectBudget, paidAmount, and dueAmount based on project type
+  let projectBudget: Decimal | null = null;
+  let paidAmount: Decimal | null = null;
+  let dueAmount: Decimal | null = null;
+
+  if (projectType === "FIXED") {
+    // For FIXED projects, budget and paid amount are required
+    if (data.projectBudget !== undefined) {
+      if (data.projectBudget === null) {
+        throw new Error("Project budget cannot be null for FIXED projects");
+      }
+      projectBudget = new Decimal(data.projectBudget);
+    } else {
+      // If changing from HOURLY to FIXED, budget is required
+      if (existingProject.projectType === "HOURLY") {
+        throw new Error("Project budget is required when changing project type to FIXED");
+      }
+      projectBudget = existingProject.projectBudget;
+    }
+
+    if (data.paidAmount !== undefined) {
+      if (data.paidAmount === null) {
+        throw new Error("Paid amount cannot be null for FIXED projects");
+      }
+      paidAmount = new Decimal(data.paidAmount);
+    } else {
+      // If changing from HOURLY to FIXED, paidAmount is required
+      if (existingProject.projectType === "HOURLY") {
+        throw new Error("Paid amount is required when changing project type to FIXED");
+      }
+      paidAmount = existingProject.paidAmount;
+    }
+
+    // Calculate dueAmount for FIXED projects
+    if (projectBudget !== null && paidAmount !== null) {
+      dueAmount = calculateDueAmount(projectBudget, paidAmount);
+    }
+  } else {
+    // For HOURLY projects, set all to null
+    projectBudget = null;
+    paidAmount = null;
+    dueAmount = null;
+  }
 
   // Handle dailyNotes - append only, don't overwrite
   let dailyNotes: IDailyNote[] = [];
@@ -217,7 +278,7 @@ const updateLiveProjectIntoDB = async (
     ...(data.projectType !== undefined && { projectType: data.projectType }),
     projectBudget,
     paidAmount,
-    dueAmount, // Always update dueAmount
+    dueAmount,
     ...(data.assignedMembers !== undefined && {
       assignedMembers: data.assignedMembers,
     }),

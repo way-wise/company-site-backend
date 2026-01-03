@@ -266,9 +266,9 @@ model Blog {
   featuredImage   String?
   coverImage      String? // Keep for backward compatibility
   status          BlogStatus  @default(DRAFT)
-  tags            Json?       // Array of strings stored as JSON
+  tags            Json? // Array of strings stored as JSON
   metaTitle       String?
-  metaDescription String?    @db.Text
+  metaDescription String?     @db.Text
   slug            String      @unique
   publishedAt     DateTime?
   visibility      Visibility  @default(PUBLIC)
@@ -693,19 +693,19 @@ enum LiveProjectStatus {
 }
 
 model LiveProject {
-  id             String            @id @default(ulid())
-  clientName     String
-  clientLocation String?
-  projectType    LiveProjectType
-  projectBudget  Decimal
-  paidAmount     Decimal           @default(0)
-  dueAmount      Decimal
-  assignedMembers Json             // Array of user profile IDs
-  projectStatus  LiveProjectStatus @default(PENDING)
-  dailyNotes     Json?            // Array of objects: { note: string, createdAt: DateTime }
-  nextActions    String?           @db.Text
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id              String            @id @default(ulid())
+  clientName      String
+  clientLocation  String?
+  projectType     LiveProjectType
+  projectBudget   Decimal? // Nullable for HOURLY projects
+  paidAmount      Decimal? // Nullable for HOURLY projects
+  dueAmount       Decimal? // Nullable for HOURLY projects
+  assignedMembers Json // Array of user profile IDs
+  projectStatus   LiveProjectStatus @default(PENDING)
+  dailyNotes      Json? // Array of objects: { note: string, createdAt: DateTime }
+  nextActions     String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([projectStatus])
   @@index([projectType])
