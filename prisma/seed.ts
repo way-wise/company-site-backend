@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 import * as bcrypt from "bcrypt";
 import { DEFAULT_PERMISSIONS } from "../src/app/modules/permission/permission.constants";
 import { DEFAULT_ROLES } from "../src/app/modules/role/role.constants";
@@ -288,6 +289,104 @@ async function main() {
 		console.log(`🔑 Password: ${adminPassword}`);
 	} else {
 		console.log("ℹ️  Default admin user already exists");
+	}
+
+	// Seed Live Projects
+	console.log("📋 Creating live projects...");
+	
+	// Get user profiles for assigned members
+	const userProfiles = await prisma.userProfile.findMany({
+		take: 3,
+		include: {
+			user: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+				},
+			},
+		},
+	});
+
+	if (userProfiles.length >= 2) {
+		const assignedMemberIds = userProfiles.slice(0, 2).map((up) => up.id);
+
+		// Live Project 1: Fixed Price Project
+		const fixedProjectBudget = new Decimal(50000);
+		const fixedPaidAmount = new Decimal(15000);
+		const fixedDueAmount = new Decimal(50000 - 15000);
+
+		await prisma.liveProject.upsert({
+			where: {
+				id: "live-project-1-seed",
+			},
+			update: {},
+			create: {
+				id: "live-project-1-seed",
+				clientName: "TechCorp Solutions",
+				clientLocation: "San Francisco, CA, USA",
+				projectType: "FIXED",
+				projectBudget: fixedProjectBudget,
+				paidAmount: fixedPaidAmount,
+				dueAmount: fixedDueAmount,
+				assignedMembers: assignedMemberIds,
+				projectStatus: "ACTIVE",
+				dailyNotes: [
+					{
+						note: "Initial project kickoff meeting completed. Client requirements discussed.",
+						createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+					},
+					{
+						note: "Design mockups approved by client. Moving to development phase.",
+						createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+					},
+					{
+						note: "First milestone completed. Received payment of $15,000.",
+						createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+					},
+				],
+				nextActions: "Complete backend API development and prepare for second milestone review",
+			},
+		});
+
+		// Live Project 2: Hourly Rate Project
+		const hourlyRate = new Decimal(75); // $75 per hour
+		const hourlyPaidAmount = new Decimal(3000); // $3000 paid so far
+		const estimatedHours = 100;
+		const hourlyDueAmount = new Decimal(Math.max(0, 75 * estimatedHours - 3000)); // Assuming 100 hours estimated
+
+		await prisma.liveProject.upsert({
+			where: {
+				id: "live-project-2-seed",
+			},
+			update: {},
+			create: {
+				id: "live-project-2-seed",
+				clientName: "Global Marketing Agency",
+				clientLocation: "London, UK",
+				projectType: "HOURLY",
+				projectBudget: hourlyRate, // Hourly rate stored here
+				paidAmount: hourlyPaidAmount,
+				dueAmount: hourlyDueAmount,
+				assignedMembers: [assignedMemberIds[0]], // Single member assigned
+				projectStatus: "ON_HOLD",
+				dailyNotes: [
+					{
+						note: "Project started. Client requested hourly billing model.",
+						createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+					},
+					{
+						note: "Client requested to pause project temporarily due to budget review.",
+						createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+					},
+				],
+				nextActions: "Wait for client confirmation to resume work. Estimated 40 hours remaining.",
+			},
+		});
+
+		console.log("✅ Created 2 live projects");
+	} else {
+		console.log("⚠️  Not enough user profiles found. Skipping live project seeding.");
 	}
 
 	console.log("✨ Database seeding completed!");
