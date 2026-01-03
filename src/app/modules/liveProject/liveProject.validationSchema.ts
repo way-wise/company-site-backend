@@ -9,15 +9,9 @@ const create = z.object({
   body: z.object({
     clientName: z.string().min(1, "Client name is required"),
     clientLocation: z.string().optional(),
-    projectType: z.enum(["FIXED", "HOURLY"], {
-      required_error: "Project type is required",
-      invalid_type_error: "Project type must be either FIXED or HOURLY",
-    }),
+    projectType: z.enum(["FIXED", "HOURLY"]),
     projectBudget: z
-      .number({
-        required_error: "Project budget is required",
-        invalid_type_error: "Project budget must be a number",
-      })
+      .number()
       .positive("Project budget must be a positive number"),
     paidAmount: z
       .number()
@@ -38,11 +32,7 @@ const update = z.object({
   body: z.object({
     clientName: z.string().min(1, "Client name is required").optional(),
     clientLocation: z.string().optional(),
-    projectType: z
-      .enum(["FIXED", "HOURLY"], {
-        invalid_type_error: "Project type must be either FIXED or HOURLY",
-      })
-      .optional(),
+    projectType: z.enum(["FIXED", "HOURLY"]).optional(),
     projectBudget: z
       .number()
       .positive("Project budget must be a positive number")
