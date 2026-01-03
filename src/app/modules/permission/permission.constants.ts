@@ -13,6 +13,7 @@ export const PERMISSION_GROUPS = {
   TASK_MANAGEMENT: "task_management",
   PARTNER_MANAGEMENT: "partner_management",
   FINANCIAL_MANAGEMENT: "financial_management",
+  LIVE_PROJECT_MANAGEMENT: "live_project_management",
 } as const;
 
 export const DEFAULT_PERMISSIONS = [
@@ -401,5 +402,27 @@ export const DEFAULT_PERMISSIONS = [
     name: "manage_manual_payment",
     group: PERMISSION_GROUPS.FINANCIAL_MANAGEMENT,
     description: "Manually mark milestone payments as paid",
+  },
+
+  // Live Project Management
+  {
+    name: "create_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "Create new live projects",
+  },
+  {
+    name: "read_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "View live project details",
+  },
+  {
+    name: "update_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "Update live project information",
+  },
+  {
+    name: "delete_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "Delete live projects",
   },
 ];
