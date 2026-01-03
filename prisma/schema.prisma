@@ -679,3 +679,36 @@ model Faq {
   @@index([isShow])
   @@map("faqs")
 }
+
+enum LiveProjectType {
+  FIXED
+  HOURLY
+}
+
+enum LiveProjectStatus {
+  PENDING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+model LiveProject {
+  id             String            @id @default(ulid())
+  clientName     String
+  clientLocation String?
+  projectType    LiveProjectType
+  projectBudget  Decimal
+  paidAmount     Decimal           @default(0)
+  dueAmount      Decimal
+  assignedMembers Json             // Array of user profile IDs
+  projectStatus  LiveProjectStatus @default(PENDING)
+  dailyNotes     Json?            // Array of objects: { note: string, createdAt: DateTime }
+  nextActions    String?           @db.Text
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([projectStatus])
+  @@index([projectType])
+  @@index([clientName])
+  @@map("live_projects")
+}

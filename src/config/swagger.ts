@@ -224,6 +224,10 @@ const swaggerOptions: swaggerJsdoc.Options = {
         name: "FAQs",
         description: "Frequently asked questions",
       },
+      {
+        name: "Live Projects",
+        description: "Live project management",
+      },
     ],
   },
   apis: [
