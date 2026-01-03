@@ -37,26 +37,6 @@ const createLiveProjectIntoDB = async (data: {
   dailyNotes?: IDailyNote[];
   nextActions?: string;
 }): Promise<LiveProject> => {
-  // Validate assigned members exist
-  if (data.assignedMembers && data.assignedMembers.length > 0) {
-    const userProfiles = await prisma.userProfile.findMany({
-      where: {
-        id: {
-          in: data.assignedMembers,
-        },
-      },
-    });
-
-    if (userProfiles.length !== data.assignedMembers.length) {
-      const foundIds = userProfiles.map((up) => up.id);
-      const missingIds = data.assignedMembers.filter(
-        (id) => !foundIds.includes(id)
-      );
-      throw new Error(
-        `Invalid assigned member IDs: ${missingIds.join(", ")}`
-      );
-    }
-  }
 
   // Handle FIXED vs HOURLY projects
   let projectBudget: Decimal | null = null;
@@ -170,7 +150,7 @@ const updateLiveProjectIntoDB = async (
     projectType: "FIXED" | "HOURLY";
     projectBudget: number | null;
     paidAmount: number | null;
-    assignedMembers: string[];
+    assignedMembers: string;
     projectStatus: "PENDING" | "ACTIVE" | "ON_HOLD" | "COMPLETED";
     dailyNotes: IDailyNote[];
     nextActions: string;
@@ -182,26 +162,6 @@ const updateLiveProjectIntoDB = async (
     },
   });
 
-  // Validate assigned members if provided
-  if (data.assignedMembers && data.assignedMembers.length > 0) {
-    const userProfiles = await prisma.userProfile.findMany({
-      where: {
-        id: {
-          in: data.assignedMembers,
-        },
-      },
-    });
-
-    if (userProfiles.length !== data.assignedMembers.length) {
-      const foundIds = userProfiles.map((up) => up.id);
-      const missingIds = data.assignedMembers.filter(
-        (id) => !foundIds.includes(id)
-      );
-      throw new Error(
-        `Invalid assigned member IDs: ${missingIds.join(", ")}`
-      );
-    }
-  }
 
   // Determine the project type (use updated value if provided, otherwise existing)
   const projectType = data.projectType ?? existingProject.projectType;

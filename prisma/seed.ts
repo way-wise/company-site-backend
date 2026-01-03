@@ -309,7 +309,7 @@ async function main() {
 	});
 
 	if (userProfiles.length >= 2) {
-		const assignedMemberIds = userProfiles.slice(0, 2).map((up) => up.id);
+		const assignedMemberId = userProfiles[0].id;
 
 		// Live Project 1: Fixed Price Project
 		const fixedProjectBudget = new Decimal(50000);
@@ -329,7 +329,7 @@ async function main() {
 				projectBudget: fixedProjectBudget,
 				paidAmount: fixedPaidAmount,
 				dueAmount: fixedDueAmount,
-				assignedMembers: assignedMemberIds,
+				assignedMembers: assignedMemberId,
 				projectStatus: "ACTIVE",
 				dailyNotes: [
 					{
@@ -368,7 +368,7 @@ async function main() {
 				projectBudget: hourlyRate, // Hourly rate stored here
 				paidAmount: hourlyPaidAmount,
 				dueAmount: hourlyDueAmount,
-				assignedMembers: [assignedMemberIds[0]], // Single member assigned
+				assignedMembers: assignedMemberId, // Single member assigned
 				projectStatus: "ON_HOLD",
 				dailyNotes: [
 					{

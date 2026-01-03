@@ -700,7 +700,7 @@ model LiveProject {
   projectBudget   Decimal? // Nullable for HOURLY projects
   paidAmount      Decimal? // Nullable for HOURLY projects
   dueAmount       Decimal? // Nullable for HOURLY projects
-  assignedMembers Json // Array of user profile IDs
+  assignedMembers String
   projectStatus   LiveProjectStatus @default(PENDING)
   dailyNotes      Json? // Array of objects: { note: string, createdAt: DateTime }
   nextActions     String?           @db.Text

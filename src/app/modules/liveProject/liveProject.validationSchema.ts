@@ -36,12 +36,8 @@ const create = z
         .optional()
         .nullable(),
       assignedMembers: z
-        .array(
-          z.string({ message: "Assigned member ID must be a string" })
-            .min(1, "Assigned member ID cannot be empty")
-        )
-        .min(1, "At least one assigned member is required")
-        .max(50, "Cannot assign more than 50 members"),
+        .string({ message: "Assigned members must be a string" })
+        .min(1, "Assigned members is required and cannot be empty"),
       projectStatus: z
         .enum(["PENDING", "ACTIVE", "ON_HOLD", "COMPLETED"], {
           message: "Project status must be PENDING, ACTIVE, ON_HOLD, or COMPLETED",
@@ -144,12 +140,8 @@ const update = z
         .optional()
         .nullable(),
       assignedMembers: z
-        .array(
-          z.string({ message: "Assigned member ID must be a string" })
-            .min(1, "Assigned member ID cannot be empty")
-        )
-        .min(1, "At least one assigned member is required")
-        .max(50, "Cannot assign more than 50 members")
+        .string({ message: "Assigned members must be a string" })
+        .min(1, "Assigned members cannot be empty")
         .optional(),
       projectStatus: z
         .enum(["PENDING", "ACTIVE", "ON_HOLD", "COMPLETED"], {

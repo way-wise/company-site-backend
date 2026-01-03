@@ -48,11 +48,9 @@ const router = express.Router();
  *                 default: 0
  *                 example: 0
  *               assignedMembers:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["user-profile-id-1", "user-profile-id-2"]
- *                 description: "Array of user profile IDs"
+ *                 type: string
+ *                 example: "John Doe"
+ *                 description: "Assigned member name"
  *               projectStatus:
  *                 type: string
  *                 enum: [PENDING, ACTIVE, ON_HOLD, COMPLETED]
@@ -237,9 +235,8 @@ router.get(
  *               paidAmount:
  *                 type: number
  *               assignedMembers:
- *                 type: array
- *                 items:
- *                   type: string
+ *                 type: string
+ *                 description: "Assigned member name"
  *               projectStatus:
  *                 type: string
  *                 enum: [PENDING, ACTIVE, ON_HOLD, COMPLETED]
