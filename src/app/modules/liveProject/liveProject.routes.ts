@@ -23,11 +23,16 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
+ *               - projectName
  *               - clientName
  *               - projectType
  *               - projectBudget
  *               - assignedMembers
  *             properties:
+ *               projectName:
+ *                 type: string
+ *                 example: "E-commerce Platform Development"
+ *                 description: "Name of the project"
  *               clientName:
  *                 type: string
  *                 example: "Acme Corporation"

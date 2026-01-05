@@ -694,6 +694,7 @@ enum LiveProjectStatus {
 
 model LiveProject {
   id              String            @id @default(ulid())
+  projectName     String
   clientName      String
   clientLocation  String?
   projectType     LiveProjectType
@@ -710,5 +711,6 @@ model LiveProject {
   @@index([projectStatus])
   @@index([projectType])
   @@index([clientName])
+  @@index([projectName])
   @@map("live_projects")
 }

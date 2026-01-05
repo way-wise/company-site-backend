@@ -27,6 +27,7 @@ const calculateDueAmount = (
 };
 
 const createLiveProjectIntoDB = async (data: {
+  projectName: string;
   clientName: string;
   clientLocation?: string;
   projectType: "FIXED" | "HOURLY";
@@ -68,6 +69,7 @@ const createLiveProjectIntoDB = async (data: {
 
   return await prisma.liveProject.create({
     data: {
+      projectName: data.projectName,
       clientName: data.clientName,
       clientLocation: data.clientLocation,
       projectType: data.projectType,
@@ -145,6 +147,7 @@ const getSingleLiveProjectFromDB = async (id: string) => {
 const updateLiveProjectIntoDB = async (
   id: string,
   data: Partial<{
+    projectName: string;
     clientName: string;
     clientLocation: string;
     projectType: "FIXED" | "HOURLY";
@@ -231,6 +234,7 @@ const updateLiveProjectIntoDB = async (
   }
 
   const updateData: Prisma.LiveProjectUpdateInput = {
+    ...(data.projectName !== undefined && { projectName: data.projectName }),
     ...(data.clientName !== undefined && { clientName: data.clientName }),
     ...(data.clientLocation !== undefined && {
       clientLocation: data.clientLocation,

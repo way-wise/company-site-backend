@@ -323,6 +323,7 @@ async function main() {
 			update: {},
 			create: {
 				id: "live-project-1-seed",
+				projectName: "E-commerce Platform Development",
 				clientName: "TechCorp Solutions",
 				clientLocation: "San Francisco, CA, USA",
 				projectType: "FIXED",
@@ -362,6 +363,7 @@ async function main() {
 			update: {},
 			create: {
 				id: "live-project-2-seed",
+				projectName: "Website Redesign & Maintenance",
 				clientName: "Global Marketing Agency",
 				clientLocation: "London, UK",
 				projectType: "HOURLY",

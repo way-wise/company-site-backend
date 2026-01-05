@@ -12,6 +12,10 @@ const dailyNoteSchema = z.object({
 const create = z
   .object({
     body: z.object({
+      projectName: z
+        .string({ message: "Project name must be a string" })
+        .min(1, "Project name is required and cannot be empty")
+        .max(255, "Project name must be less than 255 characters"),
       clientName: z
         .string({ message: "Client name must be a string" })
         .min(1, "Client name is required and cannot be empty")
@@ -113,6 +117,11 @@ const create = z
 const update = z
   .object({
     body: z.object({
+      projectName: z
+        .string({ message: "Project name must be a string" })
+        .min(1, "Project name cannot be empty")
+        .max(255, "Project name must be less than 255 characters")
+        .optional(),
       clientName: z
         .string({ message: "Client name must be a string" })
         .min(1, "Client name cannot be empty")

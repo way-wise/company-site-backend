@@ -1,5 +1,6 @@
 export type ILiveProjectFilterParams = {
   q?: string | undefined;
+  projectName?: string | undefined;
   clientName?: string | undefined;
   clientLocation?: string | undefined;
   projectType?: "FIXED" | "HOURLY" | undefined;

@@ -1,6 +1,7 @@
-export const searchableFields = ["clientName", "clientLocation", "nextActions"];
+export const searchableFields = ["projectName", "clientName", "clientLocation", "nextActions"];
 export const validParams = [
   "q",
+  "projectName",
   "clientName",
   "clientLocation",
   "projectType",
