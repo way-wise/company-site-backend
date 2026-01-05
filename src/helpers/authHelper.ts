@@ -102,7 +102,7 @@ const fetchUserWithPermissions = async (
   email: string,
   payload?: JwtPayload
 ) => {
-  const user = await prisma.user.findUniqueOrThrow({
+  const user = await prisma.user.findUnique({
     where: { email },
     include: {
       userProfile: true,
@@ -121,6 +121,21 @@ const fetchUserWithPermissions = async (
       },
     },
   });
+
+  if (!user) {
+    throw new HTTPError(
+      httpStatus.UNAUTHORIZED,
+      "User account not found. Please login again."
+    );
+  }
+
+  // Check if user is active
+  if (user.status !== "ACTIVE") {
+    throw new HTTPError(
+      httpStatus.FORBIDDEN,
+      "Your account is not active. Please contact support."
+    );
+  }
 
   const permissions = await permissionHelper.getUserPermissions(user.id);
 
