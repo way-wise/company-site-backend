@@ -29,10 +29,11 @@ export const verifyAndFetchUser = async (
 
   const verifiedUser = await verifyAccessToken(tokens.accessToken);
   if (verifiedUser) {
-    return fetchUserWithPermissions(verifiedUser.email, verifiedUser);
+    return fetchUserWithPermissions(verifiedUser.email, verifiedUser, res);
   }
 
   if (!tokens.refreshToken) {
+    clearAuthCookies(res);
     throw new HTTPError(
       httpStatus.UNAUTHORIZED,
       "Session expired. Please login again."
@@ -48,7 +49,7 @@ export const verifyAndFetchUser = async (
       config.jwt.jwt_secret as Secret
     );
 
-    return fetchUserWithPermissions(refreshedPayload.email, refreshedPayload);
+    return fetchUserWithPermissions(refreshedPayload.email, refreshedPayload, res);
   } catch (error) {
     clearAuthCookies(res);
     throw new HTTPError(
@@ -100,7 +101,8 @@ const verifyAccessToken = (token?: string): JwtPayload | null => {
 
 const fetchUserWithPermissions = async (
   email: string,
-  payload?: JwtPayload
+  payload?: JwtPayload,
+  res?: Response
 ) => {
   const user = await prisma.user.findUnique({
     where: { email },
@@ -123,6 +125,10 @@ const fetchUserWithPermissions = async (
   });
 
   if (!user) {
+    // Clear auth cookies to prevent infinite retry loops
+    if (res) {
+      clearAuthCookies(res);
+    }
     throw new HTTPError(
       httpStatus.UNAUTHORIZED,
       "User account not found. Please login again."
@@ -131,6 +137,10 @@ const fetchUserWithPermissions = async (
 
   // Check if user is active
   if (user.status !== "ACTIVE") {
+    // Clear auth cookies for inactive users
+    if (res) {
+      clearAuthCookies(res);
+    }
     throw new HTTPError(
       httpStatus.FORBIDDEN,
       "Your account is not active. Please contact support."
