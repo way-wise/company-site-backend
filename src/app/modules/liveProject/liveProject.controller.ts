@@ -7,15 +7,17 @@ import { sendResponse } from "../../../shared/sendResponse";
 import { validParams } from "./liveProject.constants";
 import { LiveProjectService } from "./liveProject.service";
 
-const createLiveProject = catchAsync(async (req: Request, res: Response) => {
-  const result = await LiveProjectService.createLiveProjectIntoDB(req.body);
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    message: "Live project created successfully!",
-    data: result,
-  });
-});
+const createLiveProject = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const result = await LiveProjectService.createLiveProjectIntoDB(req.body);
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: "Live project created successfully!",
+      data: result,
+    });
+  }
+);
 
 const getAllLiveProjects = catchAsync(async (req: Request, res: Response) => {
   const validQueryParams = filterValidQueryParams(req.query, validParams);
@@ -50,20 +52,26 @@ const getSingleLiveProject = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const updateLiveProject = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+const updateLiveProject = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const userName = req.user?.name || req.user?.email || "Unknown User";
 
-  const result = await LiveProjectService.updateLiveProjectIntoDB(
-    id,
-    req.body
-  );
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Live project updated successfully!",
-    data: result,
-  });
-});
+    const result = await LiveProjectService.updateLiveProjectIntoDB(
+      id,
+      req.body,
+      userId,
+      userName
+    );
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Live project updated successfully!",
+      data: result,
+    });
+  }
+);
 
 const deleteLiveProject = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -77,18 +85,36 @@ const deleteLiveProject = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const addDailyNote = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { note } = req.body;
+const addDailyNote = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { id } = req.params;
+    const { note } = req.body;
+    const userId = req.user?.id;
+    const userName = req.user?.name || req.user?.email || "Unknown User";
 
-  const result = await LiveProjectService.addDailyNoteToLiveProject(id, note);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Daily note added successfully!",
-    data: result,
-  });
-});
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User information is required to add notes",
+        data: null,
+      });
+    }
+
+    const result = await LiveProjectService.addDailyNoteToLiveProject(
+      id,
+      note,
+      userId,
+      userName
+    );
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Daily note added successfully!",
+      data: result,
+    });
+  }
+);
 
 export const LiveProjectController = {
   createLiveProject,

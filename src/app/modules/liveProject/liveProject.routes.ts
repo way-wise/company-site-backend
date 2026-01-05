@@ -61,6 +61,19 @@ const router = express.Router();
  *                 enum: [PENDING, ACTIVE, ON_HOLD, COMPLETED]
  *                 default: PENDING
  *                 example: "PENDING"
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *                 example: "2024-12-31T23:59:59Z"
+ *                 description: "Project deadline (ISO datetime string)"
+ *               progress:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 nullable: true
+ *                 example: 45
+ *                 description: "Project progress percentage (0-100)"
  *               dailyNotes:
  *                 type: array
  *                 items:
@@ -71,10 +84,19 @@ const router = express.Router();
  *                     createdAt:
  *                       type: string
  *                       format: date-time
- *                 description: "Optional initial daily notes"
+ *                     userId:
+ *                       type: string
+ *                     userName:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                       enum: [note, action]
+ *                       default: note
+ *                 description: "Optional initial daily notes (userId and userName are required)"
  *               nextActions:
  *                 type: string
  *                 example: "Review design mockups and provide feedback"
+ *                 description: "Current next action (automatically saved to notes when updated)"
  *     responses:
  *       201:
  *         description: Live project created successfully
@@ -254,9 +276,32 @@ router.get(
  *                       type: string
  *                     createdAt:
  *                       type: string
- *                 description: "New notes to append (existing notes are preserved)"
+ *                       format: date-time
+ *                     userId:
+ *                       type: string
+ *                     userName:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                       enum: [note, action]
+ *                       default: note
+ *                 description: "New notes to append (existing notes are preserved, userId and userName are required)"
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *                 example: "2024-12-31T23:59:59Z"
+ *                 description: "Project deadline (ISO datetime string)"
+ *               progress:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 nullable: true
+ *                 example: 45
+ *                 description: "Project progress percentage (0-100)"
  *               nextActions:
  *                 type: string
+ *                 description: "Current next action (automatically saved to notes with user info when updated)"
  *     responses:
  *       200:
  *         description: Live project updated successfully

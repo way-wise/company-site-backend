@@ -10,5 +10,8 @@ export type ILiveProjectFilterParams = {
 export type IDailyNote = {
   note: string;
   createdAt: string;
+  userId: string;
+  userName: string;
+  type?: "note" | "action"; // 'note' for regular notes, 'action' for next actions
 };
 

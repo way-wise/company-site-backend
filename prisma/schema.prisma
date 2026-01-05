@@ -703,8 +703,10 @@ model LiveProject {
   dueAmount       Decimal? // Nullable for HOURLY projects
   assignedMembers String
   projectStatus   LiveProjectStatus @default(PENDING)
-  dailyNotes      Json? // Array of objects: { note: string, createdAt: DateTime }
-  nextActions     String?           @db.Text
+  deadline        DateTime? // Project deadline
+  progress        Int? // Progress percentage (0-100)
+  dailyNotes      Json? // Array of objects: { note: string, createdAt: string, userId: string, userName: string, type?: 'note' | 'action' }
+  nextActions     String?           @db.Text // Current next action (also saved in dailyNotes when updated)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -712,5 +714,6 @@ model LiveProject {
   @@index([projectType])
   @@index([clientName])
   @@index([projectName])
+  @@index([deadline])
   @@map("live_projects")
 }

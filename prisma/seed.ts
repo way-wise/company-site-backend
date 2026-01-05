@@ -310,11 +310,14 @@ async function main() {
 
 	if (userProfiles.length >= 2) {
 		const assignedMemberId = userProfiles[0].id;
+		const userId = userProfiles[0].user.id;
+		const userName = userProfiles[0].user.name || userProfiles[0].user.email;
 
 		// Live Project 1: Fixed Price Project
 		const fixedProjectBudget = new Decimal(50000);
 		const fixedPaidAmount = new Decimal(15000);
 		const fixedDueAmount = new Decimal(50000 - 15000);
+		const fixedDeadline = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
 
 		await prisma.liveProject.upsert({
 			where: {
@@ -332,18 +335,36 @@ async function main() {
 				dueAmount: fixedDueAmount,
 				assignedMembers: assignedMemberId,
 				projectStatus: "ACTIVE",
+				deadline: fixedDeadline,
+				progress: 45,
 				dailyNotes: [
 					{
 						note: "Initial project kickoff meeting completed. Client requirements discussed.",
 						createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+						userId,
+						userName,
+						type: "note",
 					},
 					{
 						note: "Design mockups approved by client. Moving to development phase.",
 						createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+						userId,
+						userName,
+						type: "note",
 					},
 					{
 						note: "First milestone completed. Received payment of $15,000.",
 						createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+						userId,
+						userName,
+						type: "note",
+					},
+					{
+						note: "Complete backend API development and prepare for second milestone review",
+						createdAt: new Date().toISOString(),
+						userId,
+						userName,
+						type: "action",
 					},
 				],
 				nextActions: "Complete backend API development and prepare for second milestone review",
@@ -351,10 +372,7 @@ async function main() {
 		});
 
 		// Live Project 2: Hourly Rate Project
-		const hourlyRate = new Decimal(75); // $75 per hour
-		const hourlyPaidAmount = new Decimal(3000); // $3000 paid so far
-		const estimatedHours = 100;
-		const hourlyDueAmount = new Decimal(Math.max(0, 75 * estimatedHours - 3000)); // Assuming 100 hours estimated
+		const hourlyDeadline = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days from now
 
 		await prisma.liveProject.upsert({
 			where: {
@@ -367,19 +385,34 @@ async function main() {
 				clientName: "Global Marketing Agency",
 				clientLocation: "London, UK",
 				projectType: "HOURLY",
-				projectBudget: hourlyRate, // Hourly rate stored here
-				paidAmount: hourlyPaidAmount,
-				dueAmount: hourlyDueAmount,
+				projectBudget: null, // Null for HOURLY projects
+				paidAmount: null, // Null for HOURLY projects
+				dueAmount: null, // Null for HOURLY projects
 				assignedMembers: assignedMemberId, // Single member assigned
 				projectStatus: "ON_HOLD",
+				deadline: hourlyDeadline,
+				progress: 30,
 				dailyNotes: [
 					{
 						note: "Project started. Client requested hourly billing model.",
 						createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+						userId,
+						userName,
+						type: "note",
 					},
 					{
 						note: "Client requested to pause project temporarily due to budget review.",
 						createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+						userId,
+						userName,
+						type: "note",
+					},
+					{
+						note: "Wait for client confirmation to resume work. Estimated 40 hours remaining.",
+						createdAt: new Date().toISOString(),
+						userId,
+						userName,
+						type: "action",
 					},
 				],
 				nextActions: "Wait for client confirmation to resume work. Estimated 40 hours remaining.",

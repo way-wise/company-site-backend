@@ -35,6 +35,8 @@ const createLiveProjectIntoDB = async (data: {
   paidAmount?: number | null;
   assignedMembers: string;
   projectStatus?: "PENDING" | "ACTIVE" | "ON_HOLD" | "COMPLETED";
+  deadline?: string | null;
+  progress?: number | null;
   dailyNotes?: IDailyNote[];
   nextActions?: string;
 }): Promise<LiveProject> => {
@@ -59,13 +61,17 @@ const createLiveProjectIntoDB = async (data: {
     dueAmount = null;
   }
 
-  // Initialize dailyNotes with createdAt if provided
+  // Initialize dailyNotes with createdAt and ensure user info is present
   const dailyNotes = data.dailyNotes
     ? data.dailyNotes.map((note) => ({
         ...note,
         createdAt: note.createdAt || new Date().toISOString(),
+        type: note.type || "note",
       }))
     : [];
+
+  // Parse deadline if provided
+  const deadlineDate = data.deadline ? new Date(data.deadline) : null;
 
   return await prisma.liveProject.create({
     data: {
@@ -78,6 +84,8 @@ const createLiveProjectIntoDB = async (data: {
       dueAmount,
       assignedMembers: data.assignedMembers,
       projectStatus: data.projectStatus || "PENDING",
+      deadline: deadlineDate,
+      progress: data.progress ?? null,
       dailyNotes: dailyNotes.length > 0 ? dailyNotes : undefined,
       nextActions: data.nextActions,
     },
@@ -155,9 +163,13 @@ const updateLiveProjectIntoDB = async (
     paidAmount: number | null;
     assignedMembers: string;
     projectStatus: "PENDING" | "ACTIVE" | "ON_HOLD" | "COMPLETED";
+    deadline: string | null;
+    progress: number | null;
     dailyNotes: IDailyNote[];
     nextActions: string;
-  }>
+  }>,
+  userId?: string,
+  userName?: string
 ): Promise<LiveProject> => {
   const existingProject = await prisma.liveProject.findUniqueOrThrow({
     where: {
@@ -217,21 +229,40 @@ const updateLiveProjectIntoDB = async (
 
   // Handle dailyNotes - append only, don't overwrite
   let dailyNotes: IDailyNote[] = [];
+  const existingNotes =
+    (existingProject.dailyNotes as IDailyNote[] | null) || [];
+
   if (data.dailyNotes) {
-    // Get existing notes
-    const existingNotes =
-      (existingProject.dailyNotes as IDailyNote[] | null) || [];
-    // Append new notes with createdAt
+    // Append new notes with createdAt and ensure user info
     const newNotes = data.dailyNotes.map((note) => ({
       ...note,
       createdAt: note.createdAt || new Date().toISOString(),
+      type: note.type || "note",
     }));
     dailyNotes = [...existingNotes, ...newNotes];
   } else {
     // Keep existing notes if not provided
-    dailyNotes =
-      (existingProject.dailyNotes as IDailyNote[] | null) || [];
+    dailyNotes = existingNotes;
   }
+
+  // Auto-save nextActions to notes when it's updated
+  if (data.nextActions !== undefined && data.nextActions !== existingProject.nextActions) {
+    if (data.nextActions && userId && userName) {
+      const actionNote: IDailyNote = {
+        note: data.nextActions,
+        createdAt: new Date().toISOString(),
+        userId,
+        userName,
+        type: "action",
+      };
+      dailyNotes = [...dailyNotes, actionNote];
+    }
+  }
+
+  // Parse deadline if provided
+  const deadlineDate = data.deadline !== undefined
+    ? (data.deadline ? new Date(data.deadline) : null)
+    : existingProject.deadline;
 
   const updateData: Prisma.LiveProjectUpdateInput = {
     ...(data.projectName !== undefined && { projectName: data.projectName }),
@@ -249,6 +280,8 @@ const updateLiveProjectIntoDB = async (
     ...(data.projectStatus !== undefined && {
       projectStatus: data.projectStatus,
     }),
+    ...(data.deadline !== undefined && { deadline: deadlineDate }),
+    ...(data.progress !== undefined && { progress: data.progress }),
     dailyNotes,
     ...(data.nextActions !== undefined && { nextActions: data.nextActions }),
   };
@@ -263,7 +296,9 @@ const updateLiveProjectIntoDB = async (
 
 const addDailyNoteToLiveProject = async (
   id: string,
-  note: string
+  note: string,
+  userId: string,
+  userName: string
 ): Promise<LiveProject> => {
   const existingProject = await prisma.liveProject.findUniqueOrThrow({
     where: {
@@ -276,6 +311,9 @@ const addDailyNoteToLiveProject = async (
   const newNote: IDailyNote = {
     note,
     createdAt: new Date().toISOString(),
+    userId,
+    userName,
+    type: "note",
   };
 
   const updatedNotes = [...existingNotes, newNote];

@@ -7,6 +7,15 @@ const dailyNoteSchema = z.object({
   createdAt: z
     .string({ message: "Created date must be a string" })
     .optional(),
+  userId: z
+    .string({ message: "User ID must be a string" })
+    .min(1, "User ID is required"),
+  userName: z
+    .string({ message: "User name must be a string" })
+    .min(1, "User name is required"),
+  type: z
+    .enum(["note", "action"], { message: "Type must be either 'note' or 'action'" })
+    .optional(),
 });
 
 const create = z
@@ -47,6 +56,18 @@ const create = z
           message: "Project status must be PENDING, ACTIVE, ON_HOLD, or COMPLETED",
         })
         .default("PENDING"),
+      deadline: z
+        .string({ message: "Deadline must be a valid date string" })
+        .datetime({ message: "Deadline must be a valid ISO datetime string" })
+        .optional()
+        .nullable(),
+      progress: z
+        .number({ message: "Progress must be a number" })
+        .int("Progress must be an integer")
+        .min(0, "Progress cannot be less than 0")
+        .max(100, "Progress cannot be greater than 100")
+        .optional()
+        .nullable(),
       dailyNotes: z
         .array(dailyNoteSchema, { message: "Daily notes must be an array" })
         .optional(),
@@ -157,6 +178,18 @@ const update = z
           message: "Project status must be PENDING, ACTIVE, ON_HOLD, or COMPLETED",
         })
         .optional(),
+      deadline: z
+        .string({ message: "Deadline must be a valid date string" })
+        .datetime({ message: "Deadline must be a valid ISO datetime string" })
+        .optional()
+        .nullable(),
+      progress: z
+        .number({ message: "Progress must be a number" })
+        .int("Progress must be an integer")
+        .min(0, "Progress cannot be less than 0")
+        .max(100, "Progress cannot be greater than 100")
+        .optional()
+        .nullable(),
       dailyNotes: z
         .array(dailyNoteSchema, { message: "Daily notes must be an array" })
         .optional(),
