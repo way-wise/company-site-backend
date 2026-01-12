@@ -425,4 +425,26 @@ export const DEFAULT_PERMISSIONS = [
     group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
     description: "Delete live projects",
   },
+
+  // New Live Project Management
+  {
+    name: "create_new_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "Create new live projects (new system)",
+  },
+  {
+    name: "read_new_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "View new live project details",
+  },
+  {
+    name: "update_new_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "Update new live project information",
+  },
+  {
+    name: "delete_new_live_project",
+    group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
+    description: "Delete new live projects (soft delete - archive)",
+  },
 ];
