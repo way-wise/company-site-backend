@@ -114,6 +114,9 @@ model UserProfile {
   taskAssignments           TaskAssignment[]
   taskComments              TaskComment[]
   tasks                     Task[]
+  newLiveProjects           NewLiveProject[]          @relation("NewLiveProjectCreatedBy")
+  newProjectActions         NewProjectAction[]
+  newHourLogs               NewHourLog[]
   user                      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
@@ -716,4 +719,80 @@ model LiveProject {
   @@index([projectName])
   @@index([deadline])
   @@map("live_projects")
+}
+
+enum NewLiveProjectType {
+  FIXED
+  HOURLY
+}
+
+enum NewLiveProjectStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCEL
+  ARCHIVED
+}
+
+model NewLiveProject {
+  id                String                @id @default(ulid())
+  projectName       String
+  clientName        String?
+  clientLocation    String?
+  assignedMembers   String[] // Array of strings
+  projectStatus     NewLiveProjectStatus  @default(PENDING)
+  projectType       NewLiveProjectType
+  projectBudget     Decimal? // Required for FIXED, null for HOURLY
+  paidAmount        Decimal? // Required for FIXED, null for HOURLY
+  dueAmount         Decimal? // Auto-calculated: projectBudget - paidAmount (for FIXED)
+  weeklyLimit       Decimal? // Required for HOURLY, null for FIXED
+  committedDeadline DateTime?
+  targetedDeadline  Json? // Object: { backend: Date, frontend: Date, ui: Date }
+  documents         Json? // Array of document objects
+  createdBy         String
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  creator           UserProfile           @relation("NewLiveProjectCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  actions           NewProjectAction[]
+  hourLogs          NewHourLog[]
+
+  @@index([projectStatus])
+  @@index([projectType])
+  @@index([createdBy])
+  @@index([projectName])
+  @@index([clientName])
+  @@map("new_live_projects")
+}
+
+model NewProjectAction {
+  id          String          @id @default(ulid())
+  projectId   String
+  actionText  String
+  actionDate  DateTime        @default(now())
+  createdBy   String
+  createdAt   DateTime        @default(now())
+  project     NewLiveProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator     UserProfile     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([createdBy])
+  @@index([actionDate])
+  @@map("new_project_actions")
+}
+
+model NewHourLog {
+  id             String          @id @default(ulid())
+  projectId      String
+  userId         String
+  date           DateTime
+  submittedHours Decimal
+  createdAt      DateTime        @default(now())
+  project        NewLiveProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           UserProfile     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId, date], name: "projectId_userId_date")
+  @@index([projectId])
+  @@index([userId])
+  @@index([date])
+  @@map("new_hour_logs")
 }

@@ -228,6 +228,10 @@ const swaggerOptions: swaggerJsdoc.Options = {
         name: "Live Projects",
         description: "Live project management",
       },
+      {
+        name: "New Live Projects",
+        description: "New live project management with MongoDB (actions and hour tracking)",
+      },
     ],
   },
   apis: [

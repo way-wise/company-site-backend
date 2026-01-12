@@ -22,6 +22,7 @@ import { TaskRoutes } from "../modules/task/task.routes";
 import { userRoutes } from "../modules/user/user.routes";
 import { FaqRoutes } from "../modules/faq/faq.routes";
 import { LiveProjectRoutes } from "../modules/liveProject/liveProject.routes";
+import { NewLiveProjectRoutes } from "../modules/newLiveProject/newLiveProject.routes";
 
 const router = express.Router();
 
@@ -117,6 +118,10 @@ const moduleRoutes = [
 	{
 		path: "/live-projects",
 		route: LiveProjectRoutes,
+	},
+	{
+		path: "/new-live-projects",
+		route: NewLiveProjectRoutes,
 	},
 ];
 
