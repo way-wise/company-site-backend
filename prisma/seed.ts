@@ -443,7 +443,7 @@ async function main() {
 
 	if (newProjectUserProfiles.length >= 2) {
 		const creatorId = newProjectUserProfiles[0].id;
-		const memberIds = newProjectUserProfiles.slice(0, 3).map(up => up.user.name || up.user.email);
+		// assignedMembers is String[] (array of strings) - can be any names, not tied to user IDs
 
 		// New Live Project 1: FIXED - E-commerce Platform
 		const fixedProject1Budget = new Decimal(75000);
@@ -461,7 +461,7 @@ async function main() {
 				projectName: "E-commerce Platform Development",
 				clientName: "RetailMax Inc.",
 				clientLocation: "New York, NY, USA",
-				assignedMembers: memberIds,
+				assignedMembers: ["Habib", "Nafiz", "Rakib"],
 				projectType: "FIXED",
 				projectStatus: "ACTIVE",
 				projectBudget: fixedProject1Budget,
@@ -469,9 +469,9 @@ async function main() {
 				dueAmount: fixedProject1Due,
 				committedDeadline: fixedProject1Deadline,
 				targetedDeadline: {
-					backend: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-					frontend: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-					ui: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+					backend: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+					frontend: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+					ui: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
 				},
 				documents: [
 					{
@@ -528,7 +528,7 @@ async function main() {
 				projectName: "Mobile Banking App",
 				clientName: "FinanceHub Bank",
 				clientLocation: "Toronto, Canada",
-				assignedMembers: memberIds.slice(0, 2),
+				assignedMembers: ["Habib", "Nafiz"],
 				projectType: "FIXED",
 				projectStatus: "PENDING",
 				projectBudget: fixedProject2Budget,
@@ -536,9 +536,9 @@ async function main() {
 				dueAmount: fixedProject2Due,
 				committedDeadline: fixedProject2Deadline,
 				targetedDeadline: {
-					backend: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-					frontend: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000),
-					ui: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+					backend: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+					frontend: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString(),
+					ui: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
 				},
 				createdBy: creatorId,
 			},
@@ -558,7 +558,7 @@ async function main() {
 				projectName: "Website Maintenance & Support",
 				clientName: "TechStart Solutions",
 				clientLocation: "Austin, TX, USA",
-				assignedMembers: [memberIds[0]],
+				assignedMembers: ["Rakib"],
 				projectType: "HOURLY",
 				projectStatus: "ACTIVE",
 				weeklyLimit: hourlyProject1Limit,
@@ -638,13 +638,13 @@ async function main() {
 				projectName: "RESTful API Development",
 				clientName: "DataSync Corp",
 				clientLocation: "Seattle, WA, USA",
-				assignedMembers: memberIds.slice(0, 2),
+				assignedMembers: ["Habib", "Nafiz"],
 				projectType: "HOURLY",
 				projectStatus: "ACTIVE",
 				weeklyLimit: hourlyProject2Limit,
 				committedDeadline: hourlyProject2Deadline,
 				targetedDeadline: {
-					backend: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+					backend: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
 				},
 				createdBy: creatorId,
 			},
@@ -692,7 +692,7 @@ async function main() {
 				projectName: "Corporate Website Redesign",
 				clientName: "BusinessFirst LLC",
 				clientLocation: "Chicago, IL, USA",
-				assignedMembers: memberIds,
+				assignedMembers: ["Habib", "Nafiz", "Rakib"],
 				projectType: "FIXED",
 				projectStatus: "COMPLETED",
 				projectBudget: fixedProject3Budget,
