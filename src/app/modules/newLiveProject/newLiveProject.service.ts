@@ -83,18 +83,21 @@ const createNewLiveProjectIntoDB = async (data: {
     ? new Date(data.committedDeadline)
     : null;
 
-  // Parse targeted deadline
-  let targetedDeadlineJson: ITargetedDeadline | null = null;
+  // Parse targeted deadline - Prisma JSON fields need Prisma.JsonNull or undefined, not null
+  let targetedDeadlineJson: Prisma.InputJsonValue | undefined = undefined;
   if (data.targetedDeadline) {
     targetedDeadlineJson = {
       backend: data.targetedDeadline.backend || null,
       frontend: data.targetedDeadline.frontend || null,
       ui: data.targetedDeadline.ui || null,
-    };
+    } as Prisma.InputJsonValue;
   }
 
-  // Initialize documents array
-  const documents = data.documents || [];
+  // Initialize documents array - Prisma JSON fields need Prisma.JsonNull or undefined, not null
+  let documentsJson: Prisma.InputJsonValue | undefined = undefined;
+  if (data.documents && data.documents.length > 0) {
+    documentsJson = data.documents as Prisma.InputJsonValue;
+  }
 
   return await prisma.newLiveProject.create({
     data: {
@@ -110,7 +113,7 @@ const createNewLiveProjectIntoDB = async (data: {
       weeklyLimit,
       committedDeadline: committedDeadlineDate,
       targetedDeadline: targetedDeadlineJson,
-      documents,
+      documents: documentsJson,
       createdBy: data.createdBy,
     },
     include: {
@@ -326,16 +329,18 @@ const updateNewLiveProjectIntoDB = async (
         : null
       : existingProject.committedDeadline;
 
-  // Parse targeted deadline if provided
-  let targetedDeadlineJson: ITargetedDeadline | null = null;
+  // Parse targeted deadline if provided - Prisma JSON fields need Prisma.JsonNull or undefined, not null
+  let targetedDeadlineJson: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue | undefined = undefined;
   if (data.targetedDeadline !== undefined) {
-    targetedDeadlineJson = {
-      backend: data.targetedDeadline.backend || null,
-      frontend: data.targetedDeadline.frontend || null,
-      ui: data.targetedDeadline.ui || null,
-    };
-  } else {
-    targetedDeadlineJson = existingProject.targetedDeadline as ITargetedDeadline | null;
+    if (data.targetedDeadline === null) {
+      targetedDeadlineJson = Prisma.JsonNull;
+    } else {
+      targetedDeadlineJson = {
+        backend: data.targetedDeadline.backend || null,
+        frontend: data.targetedDeadline.frontend || null,
+        ui: data.targetedDeadline.ui || null,
+      } as Prisma.InputJsonValue;
+    }
   }
 
   const updateData: Prisma.NewLiveProjectUpdateInput = {
