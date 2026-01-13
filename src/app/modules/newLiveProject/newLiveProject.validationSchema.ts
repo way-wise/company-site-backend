@@ -68,6 +68,12 @@ const create = z
         .max(168, "Weekly limit cannot exceed 168 hours (1 week)")
         .optional()
         .nullable(),
+      hourlyRate: z
+        .number({ message: "Hourly rate must be a number" })
+        .positive("Hourly rate must be greater than 0")
+        .max(999999.99, "Hourly rate is too large")
+        .optional()
+        .nullable(),
       committedDeadline: z
         .string({ message: "Committed deadline must be a valid date string" })
         .datetime({ message: "Committed deadline must be a valid ISO datetime string" })
@@ -213,6 +219,12 @@ const update = z
         .number({ message: "Weekly limit must be a number" })
         .positive("Weekly limit must be greater than 0")
         .max(168, "Weekly limit cannot exceed 168 hours (1 week)")
+        .optional()
+        .nullable(),
+      hourlyRate: z
+        .number({ message: "Hourly rate must be a number" })
+        .positive("Hourly rate must be greater than 0")
+        .max(999999.99, "Hourly rate is too large")
         .optional()
         .nullable(),
       committedDeadline: z

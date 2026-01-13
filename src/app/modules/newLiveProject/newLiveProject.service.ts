@@ -46,6 +46,7 @@ const createNewLiveProjectIntoDB = async (data: {
   projectBudget?: number | null;
   paidAmount?: number | null;
   weeklyLimit?: number | null;
+  hourlyRate?: number | null;
   committedDeadline?: string | null;
   targetedDeadline?: ITargetedDeadline | null;
   documents?: IDocument[];
@@ -57,6 +58,7 @@ const createNewLiveProjectIntoDB = async (data: {
   let paidAmountDecimal: Decimal | null = null;
   let dueAmount: Decimal | null = null;
   let weeklyLimit: Decimal | null = null;
+  let hourlyRate: Decimal | null = null;
 
   if (data.projectType === "FIXED") {
     if (data.projectBudget === undefined || data.projectBudget === null) {
@@ -76,6 +78,11 @@ const createNewLiveProjectIntoDB = async (data: {
     projectBudget = null;
     paidAmountDecimal = null;
     dueAmount = null;
+  }
+
+  // Handle hourly rate (optional for both project types)
+  if (data.hourlyRate !== undefined && data.hourlyRate !== null) {
+    hourlyRate = new Decimal(data.hourlyRate);
   }
 
   // Parse committed deadline
@@ -111,6 +118,7 @@ const createNewLiveProjectIntoDB = async (data: {
       paidAmount: paidAmountDecimal,
       dueAmount,
       weeklyLimit,
+      hourlyRate,
       committedDeadline: committedDeadlineDate,
       targetedDeadline: targetedDeadlineJson,
       documents: documentsJson,
@@ -241,6 +249,7 @@ const updateNewLiveProjectIntoDB = async (
     projectBudget: number | null;
     paidAmount: number | null;
     weeklyLimit: number | null;
+    hourlyRate: number | null;
     committedDeadline: string | null;
     targetedDeadline: ITargetedDeadline | null;
     projectStatus: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCEL" | "ARCHIVED";
@@ -255,11 +264,12 @@ const updateNewLiveProjectIntoDB = async (
   // Determine the project type (use updated value if provided, otherwise existing)
   const projectType = data.projectType ?? existingProject.projectType;
 
-  // Calculate projectBudget, paidAmount, dueAmount, and weeklyLimit based on project type
+  // Calculate projectBudget, paidAmount, dueAmount, weeklyLimit, and hourlyRate based on project type
   let projectBudget: Decimal | null = null;
   let paidAmount: Decimal | null = null;
   let dueAmount: Decimal | null = null;
   let weeklyLimit: Decimal | null = null;
+  let hourlyRate: Decimal | null = null;
 
   if (projectType === "FIXED") {
     // For FIXED projects, budget and paid amount are required
@@ -321,6 +331,18 @@ const updateNewLiveProjectIntoDB = async (
     dueAmount = null;
   }
 
+  // Handle hourly rate (optional for both project types)
+  if (data.hourlyRate !== undefined) {
+    if (data.hourlyRate === null) {
+      hourlyRate = null;
+    } else {
+      hourlyRate = new Decimal(data.hourlyRate);
+    }
+  } else {
+    // Keep existing hourly rate if not provided
+    hourlyRate = existingProject.hourlyRate;
+  }
+
   // Parse committed deadline if provided
   const committedDeadlineDate =
     data.committedDeadline !== undefined
@@ -360,6 +382,7 @@ const updateNewLiveProjectIntoDB = async (
     paidAmount,
     dueAmount,
     weeklyLimit,
+    hourlyRate,
     ...(data.committedDeadline !== undefined && {
       committedDeadline: committedDeadlineDate,
     }),

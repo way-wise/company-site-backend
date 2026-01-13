@@ -63,6 +63,11 @@ const router = express.Router();
  *                 type: number
  *                 example: 40
  *                 description: "Required for HOURLY projects (hours per week)"
+ *               hourlyRate:
+ *                 type: number
+ *                 example: 50
+ *                 nullable: true
+ *                 description: "Optional hourly rate (typically for HOURLY projects)"
  *               committedDeadline:
  *                 type: string
  *                 format: date-time
@@ -225,6 +230,10 @@ router.get(
  *                 type: number
  *               weeklyLimit:
  *                 type: number
+ *               hourlyRate:
+ *                 type: number
+ *                 nullable: true
+ *                 description: "Optional hourly rate (typically for HOURLY projects)"
  *               committedDeadline:
  *                 type: string
  *                 format: date-time
