@@ -319,6 +319,35 @@ const createAction = z.object({
 });
 
 /**
+ * Update project action validation schema
+ */
+const updateAction = z
+  .object({
+    body: z.object({
+      actionText: z
+        .string({ message: "Action text must be a string" })
+        .min(1, "Action text cannot be empty")
+        .max(2000, "Action text must be less than 2000 characters")
+        .optional(),
+      actionDate: z
+        .string({ message: "Action date must be a valid date string" })
+        .datetime({ message: "Action date must be a valid ISO datetime string" })
+        .optional(),
+    }),
+  })
+  .refine(
+    (data) => {
+      return (
+        data.body.actionText !== undefined || data.body.actionDate !== undefined
+      );
+    },
+    {
+      message: "At least one field (actionText or actionDate) must be provided",
+      path: ["body"],
+    }
+  );
+
+/**
  * Create hour log validation schema
  */
 const createHourLog = z.object({
@@ -337,5 +366,6 @@ export const newLiveProjectValidationSchemas = {
   create,
   update,
   createAction,
+  updateAction,
   createHourLog,
 };

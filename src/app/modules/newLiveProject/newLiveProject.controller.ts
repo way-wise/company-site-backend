@@ -301,6 +301,47 @@ const getHourLogs = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Update a project action
+ * PUT /api/new-live-projects/:projectId/actions/:actionId
+ */
+const updateProjectAction = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { actionId } = req.params;
+
+    const result = await NewLiveProjectService.updateProjectActionIntoDB(
+      actionId,
+      req.body
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Project action updated successfully!",
+      data: result,
+    });
+  }
+);
+
+/**
+ * Delete a project action
+ * DELETE /api/new-live-projects/:projectId/actions/:actionId
+ */
+const deleteProjectAction = catchAsync(
+  async (req: Request, res: Response) => {
+    const { actionId } = req.params;
+
+    const result = await NewLiveProjectService.deleteProjectActionFromDB(actionId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Project action deleted successfully!",
+      data: result,
+    });
+  }
+);
+
 export const NewLiveProjectController = {
   createNewLiveProject,
   getAllNewLiveProjects,
@@ -310,6 +351,8 @@ export const NewLiveProjectController = {
   uploadDocument,
   createProjectAction,
   getProjectActions,
+  updateProjectAction,
+  deleteProjectAction,
   createHourLog,
   getHourLogs,
 };

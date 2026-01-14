@@ -443,6 +443,94 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/new-live-projects/{projectId}/actions/{actionId}:
+ *   put:
+ *     tags: [New Live Projects]
+ *     summary: Update project action
+ *     description: Update an existing action for a project. Requires 'update_new_live_project' permission.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: actionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               actionText:
+ *                 type: string
+ *                 example: "Review design mockups and provide feedback"
+ *                 description: "Optional, update action text"
+ *               actionDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: "Optional, update action date"
+ *     responses:
+ *       200:
+ *         description: Project action updated successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Action not found
+ *   delete:
+ *     tags: [New Live Projects]
+ *     summary: Delete project action
+ *     description: Delete an action from a project. Requires 'update_new_live_project' permission.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: actionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Project action deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Action not found
+ */
+router.put(
+  "/:projectId/actions/:actionId",
+  permissionGuard("update_new_live_project"),
+  validateRequest(newLiveProjectValidationSchemas.updateAction),
+  NewLiveProjectController.updateProjectAction
+);
+
+router.delete(
+  "/:projectId/actions/:actionId",
+  permissionGuard("update_new_live_project"),
+  NewLiveProjectController.deleteProjectAction
+);
+
+/**
+ * @swagger
  * /api/v1/new-live-projects/{projectId}/hours:
  *   post:
  *     tags: [New Live Projects]

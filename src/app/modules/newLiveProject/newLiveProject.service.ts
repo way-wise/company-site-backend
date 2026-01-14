@@ -581,6 +581,73 @@ const getProjectActionsFromDB = async (projectId: string) => {
 };
 
 /**
+ * Update a project action
+ */
+const updateProjectActionIntoDB = async (
+  actionId: string,
+  data: {
+    actionText?: string;
+    actionDate?: string;
+  }
+): Promise<NewProjectAction> => {
+  const updateData: Prisma.NewProjectActionUpdateInput = {};
+
+  if (data.actionText !== undefined) {
+    updateData.actionText = data.actionText;
+  }
+
+  if (data.actionDate !== undefined) {
+    updateData.actionDate = data.actionDate ? new Date(data.actionDate) : new Date();
+  }
+
+  return await prisma.newProjectAction.update({
+    where: {
+      id: actionId,
+    },
+    data: updateData,
+    include: {
+      creator: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+/**
+ * Delete a project action
+ */
+const deleteProjectActionFromDB = async (actionId: string): Promise<NewProjectAction> => {
+  return await prisma.newProjectAction.delete({
+    where: {
+      id: actionId,
+    },
+    include: {
+      creator: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+/**
  * Create an hour log for hourly projects
  */
 const createHourLogIntoDB = async (data: {
@@ -712,6 +779,8 @@ export const NewLiveProjectService = {
   uploadDocumentToProject,
   createProjectActionIntoDB,
   getProjectActionsFromDB,
+  updateProjectActionIntoDB,
+  deleteProjectActionFromDB,
   createHourLogIntoDB,
   getHourLogsFromDB,
 };
