@@ -74,6 +74,12 @@ const create = z
         .max(999999.99, "Hourly rate is too large")
         .optional()
         .nullable(),
+      progress: z
+        .number({ message: "Progress must be a number" })
+        .min(0, "Progress cannot be negative")
+        .max(100, "Progress cannot exceed 100")
+        .optional()
+        .nullable(),
       committedDeadline: z
         .string({ message: "Committed deadline must be a valid date string" })
         .datetime({ message: "Committed deadline must be a valid ISO datetime string" })
@@ -225,6 +231,12 @@ const update = z
         .number({ message: "Hourly rate must be a number" })
         .positive("Hourly rate must be greater than 0")
         .max(999999.99, "Hourly rate is too large")
+        .optional()
+        .nullable(),
+      progress: z
+        .number({ message: "Progress must be a number" })
+        .min(0, "Progress cannot be negative")
+        .max(100, "Progress cannot exceed 100")
         .optional()
         .nullable(),
       committedDeadline: z

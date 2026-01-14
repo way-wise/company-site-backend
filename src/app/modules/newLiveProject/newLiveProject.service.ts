@@ -47,6 +47,7 @@ const createNewLiveProjectIntoDB = async (data: {
   paidAmount?: number | null;
   weeklyLimit?: number | null;
   hourlyRate?: number | null;
+  progress?: number | null;
   committedDeadline?: string | null;
   targetedDeadline?: ITargetedDeadline | null;
   documents?: IDocument[];
@@ -59,6 +60,7 @@ const createNewLiveProjectIntoDB = async (data: {
   let dueAmount: Decimal | null = null;
   let weeklyLimit: Decimal | null = null;
   let hourlyRate: Decimal | null = null;
+  let progress: Decimal | null = null;
 
   if (data.projectType === "FIXED") {
     if (data.projectBudget === undefined || data.projectBudget === null) {
@@ -83,6 +85,14 @@ const createNewLiveProjectIntoDB = async (data: {
   // Handle hourly rate (optional for both project types)
   if (data.hourlyRate !== undefined && data.hourlyRate !== null) {
     hourlyRate = new Decimal(data.hourlyRate);
+  }
+
+  // Handle progress (optional, 0-100)
+  if (data.progress !== undefined && data.progress !== null) {
+    if (data.progress < 0 || data.progress > 100) {
+      throw new Error("Progress must be between 0 and 100");
+    }
+    progress = new Decimal(data.progress);
   }
 
   // Parse committed deadline
@@ -119,6 +129,7 @@ const createNewLiveProjectIntoDB = async (data: {
       dueAmount,
       weeklyLimit,
       hourlyRate,
+      progress,
       committedDeadline: committedDeadlineDate,
       targetedDeadline: targetedDeadlineJson,
       documents: documentsJson,
@@ -250,6 +261,7 @@ const updateNewLiveProjectIntoDB = async (
     paidAmount: number | null;
     weeklyLimit: number | null;
     hourlyRate: number | null;
+    progress: number | null;
     committedDeadline: string | null;
     targetedDeadline: ITargetedDeadline | null;
     projectStatus: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCEL" | "ARCHIVED";
@@ -264,12 +276,13 @@ const updateNewLiveProjectIntoDB = async (
   // Determine the project type (use updated value if provided, otherwise existing)
   const projectType = data.projectType ?? existingProject.projectType;
 
-  // Calculate projectBudget, paidAmount, dueAmount, weeklyLimit, and hourlyRate based on project type
+  // Calculate projectBudget, paidAmount, dueAmount, weeklyLimit, hourlyRate, and progress based on project type
   let projectBudget: Decimal | null = null;
   let paidAmount: Decimal | null = null;
   let dueAmount: Decimal | null = null;
   let weeklyLimit: Decimal | null = null;
   let hourlyRate: Decimal | null = null;
+  let progress: Decimal | null = null;
 
   if (projectType === "FIXED") {
     // For FIXED projects, budget and paid amount are required
@@ -343,6 +356,21 @@ const updateNewLiveProjectIntoDB = async (
     hourlyRate = existingProject.hourlyRate;
   }
 
+  // Handle progress (optional, 0-100)
+  if (data.progress !== undefined) {
+    if (data.progress === null) {
+      progress = null;
+    } else {
+      if (data.progress < 0 || data.progress > 100) {
+        throw new Error("Progress must be between 0 and 100");
+      }
+      progress = new Decimal(data.progress);
+    }
+  } else {
+    // Keep existing progress if not provided
+    progress = existingProject.progress;
+  }
+
   // Parse committed deadline if provided
   const committedDeadlineDate =
     data.committedDeadline !== undefined
@@ -383,6 +411,7 @@ const updateNewLiveProjectIntoDB = async (
     dueAmount,
     weeklyLimit,
     hourlyRate,
+    progress,
     ...(data.committedDeadline !== undefined && {
       committedDeadline: committedDeadlineDate,
     }),

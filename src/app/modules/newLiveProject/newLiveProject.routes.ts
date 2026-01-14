@@ -68,6 +68,13 @@ const router = express.Router();
  *                 example: 50
  *                 nullable: true
  *                 description: "Optional hourly rate (typically for HOURLY projects)"
+ *               progress:
+ *                 type: number
+ *                 example: 25
+ *                 nullable: true
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 description: "Optional progress percentage (0-100)"
  *               committedDeadline:
  *                 type: string
  *                 format: date-time
@@ -234,6 +241,12 @@ router.get(
  *                 type: number
  *                 nullable: true
  *                 description: "Optional hourly rate (typically for HOURLY projects)"
+ *               progress:
+ *                 type: number
+ *                 nullable: true
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 description: "Optional progress percentage (0-100)"
  *               committedDeadline:
  *                 type: string
  *                 format: date-time

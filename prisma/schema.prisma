@@ -747,6 +747,7 @@ model NewLiveProject {
   dueAmount         Decimal? // Auto-calculated: projectBudget - paidAmount (for FIXED)
   weeklyLimit       Decimal? // Required for HOURLY, null for FIXED
   hourlyRate        Decimal? // Optional hourly rate (typically for HOURLY projects)
+  progress          Decimal?
   committedDeadline DateTime?
   targetedDeadline  Json? // Object: { backend: Date, frontend: Date, ui: Date }
   documents         Json? // Array of document objects
