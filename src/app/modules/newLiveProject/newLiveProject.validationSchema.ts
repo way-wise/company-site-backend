@@ -74,6 +74,11 @@ const create = z
         .max(999999.99, "Hourly rate is too large")
         .optional()
         .nullable(),
+      paidHours: z
+        .number({ message: "Paid hours must be a number" })
+        .nonnegative("Paid hours cannot be negative")
+        .optional()
+        .nullable(),
       progress: z
         .number({ message: "Progress must be a number" })
         .min(0, "Progress cannot be negative")
@@ -231,6 +236,11 @@ const update = z
         .number({ message: "Hourly rate must be a number" })
         .positive("Hourly rate must be greater than 0")
         .max(999999.99, "Hourly rate is too large")
+        .optional()
+        .nullable(),
+      paidHours: z
+        .number({ message: "Paid hours must be a number" })
+        .nonnegative("Paid hours cannot be negative")
         .optional()
         .nullable(),
       progress: z

@@ -35,6 +35,30 @@ const calculateDueAmount = (
 };
 
 /**
+ * Calculate total paid hours for HOURLY projects
+ * Formula: paidHours = sum of all hour logs for the project
+ */
+const calculatePaidHours = async (projectId: string): Promise<Decimal> => {
+  const hourLogs = await prisma.newHourLog.findMany({
+    where: {
+      projectId,
+    },
+    select: {
+      submittedHours: true,
+    },
+  });
+
+  const totalHours = hourLogs.reduce((sum, log) => {
+    const hours = typeof log.submittedHours === "number" 
+      ? log.submittedHours 
+      : Number(log.submittedHours);
+    return sum + hours;
+  }, 0);
+
+  return new Decimal(totalHours);
+};
+
+/**
  * Create a new live project
  */
 const createNewLiveProjectIntoDB = async (data: {
@@ -129,6 +153,7 @@ const createNewLiveProjectIntoDB = async (data: {
       dueAmount,
       weeklyLimit,
       hourlyRate,
+      paidHours: data.projectType === "HOURLY" ? new Decimal(0) : null,
       progress,
       committedDeadline: committedDeadlineDate,
       targetedDeadline: targetedDeadlineJson,
@@ -261,6 +286,7 @@ const updateNewLiveProjectIntoDB = async (
     paidAmount: number | null;
     weeklyLimit: number | null;
     hourlyRate: number | null;
+    paidHours: number | null;
     progress: number | null;
     committedDeadline: string | null;
     targetedDeadline: ITargetedDeadline | null;
@@ -276,12 +302,13 @@ const updateNewLiveProjectIntoDB = async (
   // Determine the project type (use updated value if provided, otherwise existing)
   const projectType = data.projectType ?? existingProject.projectType;
 
-  // Calculate projectBudget, paidAmount, dueAmount, weeklyLimit, hourlyRate, and progress based on project type
+  // Calculate projectBudget, paidAmount, dueAmount, weeklyLimit, hourlyRate, paidHours, and progress based on project type
   let projectBudget: Decimal | null = null;
   let paidAmount: Decimal | null = null;
   let dueAmount: Decimal | null = null;
   let weeklyLimit: Decimal | null = null;
   let hourlyRate: Decimal | null = null;
+  let paidHours: Decimal | null = null;
   let progress: Decimal | null = null;
 
   if (projectType === "FIXED") {
@@ -322,6 +349,7 @@ const updateNewLiveProjectIntoDB = async (
     }
 
     weeklyLimit = null;
+    paidHours = null;
   } else {
     // For HOURLY projects
     if (data.weeklyLimit !== undefined) {
@@ -342,6 +370,18 @@ const updateNewLiveProjectIntoDB = async (
     projectBudget = null;
     paidAmount = null;
     dueAmount = null;
+    
+    // Handle paidHours for HOURLY projects
+    if (data.paidHours !== undefined) {
+      // Manual paidHours provided
+      paidHours = data.paidHours !== null ? new Decimal(data.paidHours) : null;
+    } else if (existingProject.projectType === "HOURLY") {
+      // Keep existing paidHours
+      paidHours = existingProject.paidHours;
+    } else {
+      // Switching from FIXED to HOURLY - initialize paidHours to 0
+      paidHours = new Decimal(0);
+    }
   }
 
   // Handle hourly rate (optional for both project types)
@@ -411,6 +451,7 @@ const updateNewLiveProjectIntoDB = async (
     dueAmount,
     weeklyLimit,
     hourlyRate,
+    paidHours,
     progress,
     ...(data.committedDeadline !== undefined && {
       committedDeadline: committedDeadlineDate,
@@ -684,9 +725,11 @@ const createHourLogIntoDB = async (data: {
     },
   });
 
+  let hourLog: NewHourLog;
+
   if (existingLog) {
     // Update existing log
-    return await prisma.newHourLog.update({
+    hourLog = await prisma.newHourLog.update({
       where: {
         id: existingLog.id,
       },
@@ -708,31 +751,44 @@ const createHourLogIntoDB = async (data: {
         },
       },
     });
-  }
-
-  // Create new log
-  return await prisma.newHourLog.create({
-    data: {
-      projectId: data.projectId,
-      userId: data.userId,
-      date: startOfDay,
-      submittedHours: new Decimal(data.submittedHours),
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+  } else {
+    // Create new log
+    hourLog = await prisma.newHourLog.create({
+      data: {
+        projectId: data.projectId,
+        userId: data.userId,
+        date: startOfDay,
+        submittedHours: new Decimal(data.submittedHours),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
         },
       },
+    });
+  }
+
+  // Recalculate and update paidHours for the project
+  const totalPaidHours = await calculatePaidHours(data.projectId);
+  await prisma.newLiveProject.update({
+    where: {
+      id: data.projectId,
+    },
+    data: {
+      paidHours: totalPaidHours,
     },
   });
+
+  return hourLog;
 };
 
 /**

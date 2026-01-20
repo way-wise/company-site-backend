@@ -69,8 +69,8 @@ model User {
   updatedAt                DateTime             @updatedAt
   isPasswordChangeRequired Boolean              @default(true)
   refreshToken             String?
-  milestonePayments        MilestonePayment[]   @relation("UserPayments")
   processedPayments        MilestonePayment[]   @relation("ProcessedPayments")
+  milestonePayments        MilestonePayment[]   @relation("UserPayments")
   paymentMethods           PaymentMethod[]
   userProfile              UserProfile?
   roles                    UserRoleAssignment[]
@@ -107,6 +107,9 @@ model UserProfile {
   leaveApplications         LeaveApplication[]
   leaveBalances             LeaveBalance[]
   messages                  Message[]
+  newHourLogs               NewHourLog[]
+  newLiveProjects           NewLiveProject[]          @relation("NewLiveProjectCreatedBy")
+  newProjectActions         NewProjectAction[]
   notifications             Notification[]
   projectFiles              ProjectFile[]
   projectNotes              ProjectNote[]
@@ -114,9 +117,6 @@ model UserProfile {
   taskAssignments           TaskAssignment[]
   taskComments              TaskComment[]
   tasks                     Task[]
-  newLiveProjects           NewLiveProject[]          @relation("NewLiveProjectCreatedBy")
-  newProjectActions         NewProjectAction[]
-  newHourLogs               NewHourLog[]
   user                      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
@@ -264,14 +264,14 @@ model ServiceMilestone {
 model Blog {
   id              String      @id @default(ulid())
   title           String
-  content         String      @db.Text
-  excerpt         String?     @db.Text
+  content         String
+  excerpt         String?
   featuredImage   String?
-  coverImage      String? // Keep for backward compatibility
+  coverImage      String?
   status          BlogStatus  @default(DRAFT)
-  tags            Json? // Array of strings stored as JSON
+  tags            Json?
   metaTitle       String?
-  metaDescription String?     @db.Text
+  metaDescription String?
   slug            String      @unique
   publishedAt     DateTime?
   visibility      Visibility  @default(PUBLIC)
@@ -419,11 +419,6 @@ model PaymentMethod {
   @@map("payment_methods")
 }
 
-enum PaymentType {
-  STRIPE
-  MANUAL
-}
-
 model MilestonePayment {
   id                    String         @id @default(ulid())
   milestoneId           String
@@ -434,7 +429,7 @@ model MilestonePayment {
   stripeChargeId        String?
   paymentMethodId       String?
   manualPaymentMethod   String?
-  notes                 String?        @db.Text
+  notes                 String?
   processedBy           String?
   status                String         @default("succeeded")
   invoiceNumber         String         @unique
@@ -558,6 +553,132 @@ model Notification {
   @@map("notifications")
 }
 
+model Contact {
+  id                 String   @id @default(ulid())
+  fullName           String
+  email              String
+  whatsappNumber     String
+  serviceRequired    String
+  projectBudget      String
+  projectDescription String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("contacts")
+}
+
+model Faq {
+  id        String   @id @default(ulid())
+  question  String
+  answer    String
+  category  String   @default("General")
+  order     Int      @default(0)
+  isShow    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isShow])
+  @@map("faqs")
+}
+
+model LiveProject {
+  id              String            @id @default(ulid())
+  clientName      String
+  clientLocation  String?
+  projectType     LiveProjectType
+  projectBudget   Decimal?
+  paidAmount      Decimal?
+  dueAmount       Decimal?
+  projectStatus   LiveProjectStatus @default(PENDING)
+  dailyNotes      Json?
+  nextActions     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  assignedMembers String
+  projectName     String
+  deadline        DateTime?
+  progress        Int?
+
+  @@index([projectStatus])
+  @@index([projectType])
+  @@index([clientName])
+  @@index([projectName])
+  @@index([deadline])
+  @@map("live_projects")
+}
+
+model NewLiveProject {
+  id                String                @id @default(ulid())
+  projectName       String
+  clientName        String?
+  clientLocation    String?
+  assignedMembers   String[]
+  projectStatus     NewLiveProjectStatus  @default(PENDING)
+  projectType       NewLiveProjectType
+  projectBudget     Decimal?
+  paidAmount        Decimal?
+  dueAmount         Decimal?
+  weeklyLimit       Decimal?
+  hourlyRate        Decimal?
+  paidHours         Decimal?
+  progress          Decimal?
+  committedDeadline DateTime?
+  targetedDeadline  Json?
+  documents         Json?
+  createdBy         String
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  creator           UserProfile           @relation("NewLiveProjectCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  actions           NewProjectAction[]
+  hourLogs          NewHourLog[]
+
+  @@index([projectStatus])
+  @@index([projectType])
+  @@index([createdBy])
+  @@index([projectName])
+  @@index([clientName])
+  @@map("new_live_projects")
+}
+
+model NewProjectAction {
+  id         String         @id @default(ulid())
+  projectId  String
+  actionText String
+  actionDate DateTime       @default(now())
+  createdBy  String
+  createdAt  DateTime       @default(now())
+  creator    UserProfile    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  project    NewLiveProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([createdBy])
+  @@index([actionDate])
+  @@map("new_project_actions")
+}
+
+model NewHourLog {
+  id             String         @id @default(ulid())
+  projectId      String
+  userId         String
+  date           DateTime
+  submittedHours Decimal
+  createdAt      DateTime       @default(now())
+  project        NewLiveProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId, date], name: "projectId_userId_date")
+  @@index([projectId])
+  @@index([userId])
+  @@index([date])
+  @@map("new_hour_logs")
+}
+
+enum PaymentType {
+  STRIPE
+  MANUAL
+}
+
 enum UserStatus {
   ACTIVE
   BLOCKED
@@ -654,35 +775,6 @@ enum BlogStatus {
   ARCHIVED
 }
 
-model Contact {
-  id                 String   @id @default(ulid())
-  fullName           String
-  email              String
-  whatsappNumber     String
-  serviceRequired    String
-  projectBudget      String
-  projectDescription String   @db.Text
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@map("contacts")
-}
-
-model Faq {
-  id        String   @id @default(ulid())
-  question  String
-  answer    String   @db.Text
-  category  String   @default("General") // General, Technical, Process, etc.
-  order     Int      @default(0)
-  isShow    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([category])
-  @@index([isShow])
-  @@map("faqs")
-}
-
 enum LiveProjectType {
   FIXED
   HOURLY
@@ -693,32 +785,6 @@ enum LiveProjectStatus {
   ACTIVE
   ON_HOLD
   COMPLETED
-}
-
-model LiveProject {
-  id              String            @id @default(ulid())
-  projectName     String
-  clientName      String
-  clientLocation  String?
-  projectType     LiveProjectType
-  projectBudget   Decimal? // Nullable for HOURLY projects
-  paidAmount      Decimal? // Nullable for HOURLY projects
-  dueAmount       Decimal? // Nullable for HOURLY projects
-  assignedMembers String
-  projectStatus   LiveProjectStatus @default(PENDING)
-  deadline        DateTime? // Project deadline
-  progress        Int? // Progress percentage (0-100)
-  dailyNotes      Json? // Array of objects: { note: string, createdAt: string, userId: string, userName: string, type?: 'note' | 'action' }
-  nextActions     String?           @db.Text // Current next action (also saved in dailyNotes when updated)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  @@index([projectStatus])
-  @@index([projectType])
-  @@index([clientName])
-  @@index([projectName])
-  @@index([deadline])
-  @@map("live_projects")
 }
 
 enum NewLiveProjectType {
@@ -732,69 +798,4 @@ enum NewLiveProjectStatus {
   COMPLETED
   CANCEL
   ARCHIVED
-}
-
-model NewLiveProject {
-  id                String                @id @default(ulid())
-  projectName       String
-  clientName        String?
-  clientLocation    String?
-  assignedMembers   String[] // Array of strings
-  projectStatus     NewLiveProjectStatus  @default(PENDING)
-  projectType       NewLiveProjectType
-  projectBudget     Decimal? // Required for FIXED, null for HOURLY
-  paidAmount        Decimal? // Required for FIXED, null for HOURLY
-  dueAmount         Decimal? // Auto-calculated: projectBudget - paidAmount (for FIXED)
-  weeklyLimit       Decimal? // Required for HOURLY, null for FIXED
-  hourlyRate        Decimal? // Optional hourly rate (typically for HOURLY projects)
-  progress          Decimal?
-  committedDeadline DateTime?
-  targetedDeadline  Json? // Object: { backend: Date, frontend: Date, ui: Date }
-  documents         Json? // Array of document objects
-  createdBy         String
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  creator           UserProfile           @relation("NewLiveProjectCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
-  actions           NewProjectAction[]
-  hourLogs          NewHourLog[]
-
-  @@index([projectStatus])
-  @@index([projectType])
-  @@index([createdBy])
-  @@index([projectName])
-  @@index([clientName])
-  @@map("new_live_projects")
-}
-
-model NewProjectAction {
-  id          String          @id @default(ulid())
-  projectId   String
-  actionText  String
-  actionDate  DateTime        @default(now())
-  createdBy   String
-  createdAt   DateTime        @default(now())
-  project     NewLiveProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator     UserProfile     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([createdBy])
-  @@index([actionDate])
-  @@map("new_project_actions")
-}
-
-model NewHourLog {
-  id             String          @id @default(ulid())
-  projectId      String
-  userId         String
-  date           DateTime
-  submittedHours Decimal
-  createdAt      DateTime        @default(now())
-  project        NewLiveProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user           UserProfile     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, userId, date], name: "projectId_userId_date")
-  @@index([projectId])
-  @@index([userId])
-  @@index([date])
-  @@map("new_hour_logs")
 }

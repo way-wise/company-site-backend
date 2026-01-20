@@ -68,6 +68,11 @@ const router = express.Router();
  *                 example: 50
  *                 nullable: true
  *                 description: "Optional hourly rate (typically for HOURLY projects)"
+ *               paidHours:
+ *                 type: number
+ *                 example: 120.5
+ *                 nullable: true
+ *                 description: "Auto-calculated: sum of all hour logs (for HOURLY projects, read-only)"
  *               progress:
  *                 type: number
  *                 example: 25
@@ -241,6 +246,10 @@ router.get(
  *                 type: number
  *                 nullable: true
  *                 description: "Optional hourly rate (typically for HOURLY projects)"
+ *               paidHours:
+ *                 type: number
+ *                 nullable: true
+ *                 description: "Auto-calculated: sum of all hour logs (for HOURLY projects, read-only)"
  *               progress:
  *                 type: number
  *                 nullable: true
