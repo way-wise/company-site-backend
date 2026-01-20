@@ -826,6 +826,122 @@ const getHourLogsFromDB = async (projectId: string) => {
   });
 };
 
+/**
+ * Update an hour log
+ */
+const updateHourLogIntoDB = async (
+  hourLogId: string,
+  data: {
+    submittedHours: number;
+  }
+): Promise<NewHourLog> => {
+  // Verify hour log exists
+  const existingLog = await prisma.newHourLog.findUniqueOrThrow({
+    where: {
+      id: hourLogId,
+    },
+    include: {
+      project: true,
+    },
+  });
+
+  // Verify project is HOURLY type
+  if (existingLog.project.projectType !== "HOURLY") {
+    throw new Error("Hour logs can only be updated for HOURLY projects");
+  }
+
+  // Update the hour log
+  const updatedLog = await prisma.newHourLog.update({
+    where: {
+      id: hourLogId,
+    },
+    data: {
+      submittedHours: new Decimal(data.submittedHours),
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Recalculate and update paidHours for the project
+  const totalPaidHours = await calculatePaidHours(existingLog.projectId);
+  await prisma.newLiveProject.update({
+    where: {
+      id: existingLog.projectId,
+    },
+    data: {
+      paidHours: totalPaidHours,
+    },
+  });
+
+  return updatedLog;
+};
+
+/**
+ * Delete an hour log
+ */
+const deleteHourLogFromDB = async (hourLogId: string): Promise<NewHourLog> => {
+  // Verify hour log exists
+  const existingLog = await prisma.newHourLog.findUniqueOrThrow({
+    where: {
+      id: hourLogId,
+    },
+    include: {
+      project: true,
+    },
+  });
+
+  // Verify project is HOURLY type
+  if (existingLog.project.projectType !== "HOURLY") {
+    throw new Error("Hour logs can only be deleted for HOURLY projects");
+  }
+
+  // Delete the hour log
+  const deletedLog = await prisma.newHourLog.delete({
+    where: {
+      id: hourLogId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Recalculate and update paidHours for the project
+  const totalPaidHours = await calculatePaidHours(existingLog.projectId);
+  await prisma.newLiveProject.update({
+    where: {
+      id: existingLog.projectId,
+    },
+    data: {
+      paidHours: totalPaidHours,
+    },
+  });
+
+  return deletedLog;
+};
+
 export const NewLiveProjectService = {
   createNewLiveProjectIntoDB,
   getAllNewLiveProjectsFromDB,
@@ -839,4 +955,6 @@ export const NewLiveProjectService = {
   deleteProjectActionFromDB,
   createHourLogIntoDB,
   getHourLogsFromDB,
+  updateHourLogIntoDB,
+  deleteHourLogFromDB,
 };

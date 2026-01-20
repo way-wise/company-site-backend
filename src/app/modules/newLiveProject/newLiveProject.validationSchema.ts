@@ -372,10 +372,23 @@ const createHourLog = z.object({
   }),
 });
 
+/**
+ * Update hour log validation schema
+ */
+const updateHourLog = z.object({
+  body: z.object({
+    submittedHours: z
+      .number({ message: "Submitted hours must be a number" })
+      .positive("Submitted hours must be greater than 0")
+      .max(24, "Submitted hours cannot exceed 24 hours per day"),
+  }),
+});
+
 export const newLiveProjectValidationSchemas = {
   create,
   update,
   createAction,
   updateAction,
   createHourLog,
+  updateHourLog,
 };

@@ -606,6 +606,82 @@ router.delete(
  *       404:
  *         description: Project not found
  */
+/**
+ * @swagger
+ * /api/v1/new-live-projects/{projectId}/hours/{hourLogId}:
+ *   put:
+ *     tags: [New Live Projects]
+ *     summary: Update hour log
+ *     description: Update an existing hour log entry. Requires 'update_new_live_project' permission.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: hourLogId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - submittedHours
+ *             properties:
+ *               submittedHours:
+ *                 type: number
+ *                 minimum: 0.01
+ *                 maximum: 24
+ *                 example: 6.5
+ *                 description: "Updated hours worked (max 24 per day)"
+ *     responses:
+ *       200:
+ *         description: Hour log updated successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Hour log not found
+ *   delete:
+ *     tags: [New Live Projects]
+ *     summary: Delete hour log
+ *     description: Delete an hour log entry. Requires 'update_new_live_project' permission.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: hourLogId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Hour log deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Hour log not found
+ */
+
 router.post(
   "/:projectId/hours",
   permissionGuard("update_new_live_project"),
@@ -617,6 +693,19 @@ router.get(
   "/:projectId/hours",
   permissionGuard("read_new_live_project"),
   NewLiveProjectController.getHourLogs
+);
+
+router.put(
+  "/:projectId/hours/:hourLogId",
+  permissionGuard("update_new_live_project"),
+  validateRequest(newLiveProjectValidationSchemas.updateHourLog),
+  NewLiveProjectController.updateHourLog
+);
+
+router.delete(
+  "/:projectId/hours/:hourLogId",
+  permissionGuard("update_new_live_project"),
+  NewLiveProjectController.deleteHourLog
 );
 
 export const NewLiveProjectRoutes = router;
