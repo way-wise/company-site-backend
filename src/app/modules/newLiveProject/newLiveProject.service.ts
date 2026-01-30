@@ -35,30 +35,6 @@ const calculateDueAmount = (
 };
 
 /**
- * Calculate total paid hours for HOURLY projects
- * Formula: paidHours = sum of all hour logs for the project
- */
-const calculatePaidHours = async (projectId: string): Promise<Decimal> => {
-  const hourLogs = await prisma.newHourLog.findMany({
-    where: {
-      projectId,
-    },
-    select: {
-      submittedHours: true,
-    },
-  });
-
-  const totalHours = hourLogs.reduce((sum, log) => {
-    const hours = typeof log.submittedHours === "number" 
-      ? log.submittedHours 
-      : Number(log.submittedHours);
-    return sum + hours;
-  }, 0);
-
-  return new Decimal(totalHours);
-};
-
-/**
  * Create a new live project
  */
 const createNewLiveProjectIntoDB = async (data: {
@@ -728,13 +704,18 @@ const createHourLogIntoDB = async (data: {
   let hourLog: NewHourLog;
 
   if (existingLog) {
-    // Update existing log
+    // Add to existing log hours (instead of replacing)
+    const existingHours = typeof existingLog.submittedHours === "number" 
+      ? existingLog.submittedHours 
+      : Number(existingLog.submittedHours);
+    const newTotalHours = existingHours + data.submittedHours;
+    
     hourLog = await prisma.newHourLog.update({
       where: {
         id: existingLog.id,
       },
       data: {
-        submittedHours: new Decimal(data.submittedHours),
+        submittedHours: new Decimal(newTotalHours),
       },
       include: {
         user: {
@@ -776,17 +757,6 @@ const createHourLogIntoDB = async (data: {
       },
     });
   }
-
-  // Recalculate and update paidHours for the project
-  const totalPaidHours = await calculatePaidHours(data.projectId);
-  await prisma.newLiveProject.update({
-    where: {
-      id: data.projectId,
-    },
-    data: {
-      paidHours: totalPaidHours,
-    },
-  });
 
   return hourLog;
 };
@@ -874,17 +844,6 @@ const updateHourLogIntoDB = async (
     },
   });
 
-  // Recalculate and update paidHours for the project
-  const totalPaidHours = await calculatePaidHours(existingLog.projectId);
-  await prisma.newLiveProject.update({
-    where: {
-      id: existingLog.projectId,
-    },
-    data: {
-      paidHours: totalPaidHours,
-    },
-  });
-
   return updatedLog;
 };
 
@@ -925,17 +884,6 @@ const deleteHourLogFromDB = async (hourLogId: string): Promise<NewHourLog> => {
           },
         },
       },
-    },
-  });
-
-  // Recalculate and update paidHours for the project
-  const totalPaidHours = await calculatePaidHours(existingLog.projectId);
-  await prisma.newLiveProject.update({
-    where: {
-      id: existingLog.projectId,
-    },
-    data: {
-      paidHours: totalPaidHours,
     },
   });
 
