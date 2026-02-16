@@ -350,7 +350,9 @@ const updateNewLiveProjectIntoDB = async (
     // Handle paidHours for HOURLY projects
     if (data.paidHours !== undefined) {
       // Manual paidHours provided
+      console.log("Updating paidHours from", existingProject.paidHours, "to", data.paidHours);
       paidHours = data.paidHours !== null ? new Decimal(data.paidHours) : null;
+      console.log("New paidHours Decimal value:", paidHours?.toString());
     } else if (existingProject.projectType === "HOURLY") {
       // Keep existing paidHours
       paidHours = existingProject.paidHours;
@@ -409,6 +411,7 @@ const updateNewLiveProjectIntoDB = async (
     }
   }
 
+  // Build updateData conditionally to avoid overwriting fields unnecessarily
   const updateData: Prisma.NewLiveProjectUpdateInput = {
     ...(data.projectName !== undefined && { projectName: data.projectName }),
     ...(data.clientName !== undefined && { clientName: data.clientName }),
@@ -422,13 +425,16 @@ const updateNewLiveProjectIntoDB = async (
     ...(data.projectStatus !== undefined && {
       projectStatus: data.projectStatus,
     }),
-    projectBudget,
-    paidAmount,
-    dueAmount,
-    weeklyLimit,
-    hourlyRate,
-    paidHours,
-    progress,
+    // Only update budget-related fields if explicitly provided or if project type is changing
+    ...(data.projectBudget !== undefined && { projectBudget }),
+    ...(data.paidAmount !== undefined && { paidAmount }),
+    // dueAmount is calculated, so update when budget or paidAmount changes
+    ...((data.projectBudget !== undefined || data.paidAmount !== undefined) && { dueAmount }),
+    ...(data.weeklyLimit !== undefined && { weeklyLimit }),
+    ...(data.hourlyRate !== undefined && { hourlyRate }),
+    // IMPORTANT: Only update paidHours if explicitly provided
+    ...(data.paidHours !== undefined && { paidHours }),
+    ...(data.progress !== undefined && { progress }),
     ...(data.committedDeadline !== undefined && {
       committedDeadline: committedDeadlineDate,
     }),
@@ -436,6 +442,13 @@ const updateNewLiveProjectIntoDB = async (
       targetedDeadline: targetedDeadlineJson,
     }),
   };
+
+  console.log("Update data being sent to Prisma:", JSON.stringify({
+    paidHours: paidHours?.toString(),
+    updateDataPaidHours: updateData.paidHours,
+    projectType,
+    dataReceived: { paidHours: data.paidHours }
+  }, null, 2));
 
   return await prisma.newLiveProject.update({
     where: {

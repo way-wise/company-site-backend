@@ -96,10 +96,16 @@ const updateNewLiveProject = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
     const { id } = req.params;
 
+    console.log("=== UPDATE NEW LIVE PROJECT ===");
+    console.log("Project ID:", id);
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+
     const result = await NewLiveProjectService.updateNewLiveProjectIntoDB(
       id,
       req.body
     );
+
+    console.log("Update result paidHours:", result.paidHours);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
