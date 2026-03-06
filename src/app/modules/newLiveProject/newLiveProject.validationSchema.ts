@@ -249,6 +249,10 @@ const update = z
         .max(100, "Progress cannot exceed 100")
         .optional()
         .nullable(),
+      displayOrder: z
+        .number({ message: "Display order must be a number" })
+        .int("Display order must be an integer")
+        .optional(),
       committedDeadline: z
         .string({ message: "Committed deadline must be a valid date string" })
         .datetime({ message: "Committed deadline must be a valid ISO datetime string" })

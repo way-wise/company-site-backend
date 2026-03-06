@@ -189,9 +189,10 @@ const getAllNewLiveProjectsFromDB = async (
     where: conditions.length > 0 ? { AND: conditions } : {},
     skip,
     take: limit,
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
+    orderBy: [
+      { displayOrder: 'asc' },
+      { [sortBy]: sortOrder },
+    ],
     include: {
       creator: {
         select: {
@@ -264,6 +265,7 @@ const updateNewLiveProjectIntoDB = async (
     hourlyRate: number | null;
     paidHours: number | null;
     progress: number | null;
+    displayOrder: number;
     committedDeadline: string | null;
     targetedDeadline: ITargetedDeadline | null;
     projectStatus: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCEL" | "ARCHIVED";
@@ -435,6 +437,7 @@ const updateNewLiveProjectIntoDB = async (
     // IMPORTANT: Only update paidHours if explicitly provided
     ...(data.paidHours !== undefined && { paidHours }),
     ...(data.progress !== undefined && { progress }),
+    ...(data.displayOrder !== undefined && { displayOrder: data.displayOrder }),
     ...(data.committedDeadline !== undefined && {
       committedDeadline: committedDeadlineDate,
     }),
