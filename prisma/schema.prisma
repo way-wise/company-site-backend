@@ -800,3 +800,28 @@ enum NewLiveProjectStatus {
   CANCEL
   ARCHIVED
 }
+
+model SeoSetting {
+  id              String   @id @default(ulid())
+  pageSlug        String   @unique
+  pageName        String
+  metaTitle       String
+  metaDescription String
+  keywords        Json     @default("[]")
+  ogTitle         String?
+  ogDescription   String?
+  ogImage         String?
+  twitterTitle    String?
+  twitterDescription String?
+  twitterImage    String?
+  canonicalUrl    String?
+  robotsIndex     Boolean  @default(true)
+  robotsFollow    Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([pageSlug])
+  @@index([isActive])
+  @@map("seo_settings")
+}

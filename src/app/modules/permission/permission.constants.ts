@@ -14,6 +14,7 @@ export const PERMISSION_GROUPS = {
   PARTNER_MANAGEMENT: "partner_management",
   FINANCIAL_MANAGEMENT: "financial_management",
   LIVE_PROJECT_MANAGEMENT: "live_project_management",
+  SEO_MANAGEMENT: "seo_management",
 } as const;
 
 export const DEFAULT_PERMISSIONS = [
@@ -446,5 +447,12 @@ export const DEFAULT_PERMISSIONS = [
     name: "delete_new_live_project",
     group: PERMISSION_GROUPS.LIVE_PROJECT_MANAGEMENT,
     description: "Delete new live projects (soft delete - archive)",
+  },
+
+  // SEO Management
+  {
+    name: "manage_seo",
+    group: PERMISSION_GROUPS.SEO_MANAGEMENT,
+    description: "Manage SEO settings for all pages",
   },
 ];

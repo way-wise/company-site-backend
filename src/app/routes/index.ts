@@ -23,6 +23,7 @@ import { userRoutes } from "../modules/user/user.routes";
 import { FaqRoutes } from "../modules/faq/faq.routes";
 import { LiveProjectRoutes } from "../modules/liveProject/liveProject.routes";
 import { NewLiveProjectRoutes } from "../modules/newLiveProject/newLiveProject.routes";
+import { SeoRoutes } from "../modules/seo/seo.routes";
 
 const router = express.Router();
 
@@ -122,6 +123,10 @@ const moduleRoutes = [
 	{
 		path: "/new-live-projects",
 		route: NewLiveProjectRoutes,
+	},
+	{
+		path: "/seo",
+		route: SeoRoutes,
 	},
 ];
 
