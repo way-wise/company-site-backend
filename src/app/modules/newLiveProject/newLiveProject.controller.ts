@@ -389,6 +389,77 @@ const deleteProjectAction = catchAsync(
   }
 );
 
+/**
+ * Create a payment log for a project
+ * POST /api/new-live-projects/:projectId/payments
+ */
+const createPaymentLog = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const { projectId } = req.params;
+    const userProfileId = req.user?.userProfile?.id;
+
+    if (!userProfileId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: "User profile not found",
+        data: null,
+      });
+    }
+
+    const result = await NewLiveProjectService.createPaymentLogIntoDB({
+      projectId,
+      amount: req.body.amount,
+      paymentMethod: req.body.paymentMethod,
+      note: req.body.note,
+      receivedAt: req.body.receivedAt,
+      createdBy: userProfileId,
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: "Payment log created successfully!",
+      data: result,
+    });
+  }
+);
+
+/**
+ * Get payment logs for a project
+ * GET /api/new-live-projects/:projectId/payments
+ */
+const getPaymentLogs = catchAsync(async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+  const month = req.query.month as string | undefined;
+
+  const result = await NewLiveProjectService.getPaymentLogsFromDB(projectId, month);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment logs fetched successfully!",
+    data: result,
+  });
+});
+
+/**
+ * Delete a payment log
+ * DELETE /api/new-live-projects/:projectId/payments/:paymentLogId
+ */
+const deletePaymentLog = catchAsync(async (req: Request, res: Response) => {
+  const { paymentLogId } = req.params;
+
+  const result = await NewLiveProjectService.deletePaymentLogFromDB(paymentLogId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment log deleted successfully!",
+    data: result,
+  });
+});
+
 export const NewLiveProjectController = {
   createNewLiveProject,
   getAllNewLiveProjects,
@@ -404,4 +475,7 @@ export const NewLiveProjectController = {
   getHourLogs,
   updateHourLog,
   deleteHourLog,
+  createPaymentLog,
+  getPaymentLogs,
+  deletePaymentLog,
 };

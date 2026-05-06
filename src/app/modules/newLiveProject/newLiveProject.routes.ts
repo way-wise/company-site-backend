@@ -708,4 +708,23 @@ router.delete(
   NewLiveProjectController.deleteHourLog
 );
 
+router.post(
+  "/:projectId/payments",
+  permissionGuard("update_new_live_project"),
+  validateRequest(newLiveProjectValidationSchemas.createPaymentLog),
+  NewLiveProjectController.createPaymentLog
+);
+
+router.get(
+  "/:projectId/payments",
+  permissionGuard("read_new_live_project"),
+  NewLiveProjectController.getPaymentLogs
+);
+
+router.delete(
+  "/:projectId/payments/:paymentLogId",
+  permissionGuard("update_new_live_project"),
+  NewLiveProjectController.deletePaymentLog
+);
+
 export const NewLiveProjectRoutes = router;

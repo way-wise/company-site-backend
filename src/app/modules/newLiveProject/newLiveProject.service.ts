@@ -1,4 +1,4 @@
-import { Prisma, NewLiveProject, NewProjectAction, NewHourLog } from "@prisma/client";
+import { Prisma, NewLiveProject, NewProjectAction, NewHourLog, NewPaymentLog } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { generatePaginateAndSortOptions } from "../../../helpers/paginationHelpers";
 import prisma from "../../../shared/prismaClient";
@@ -53,6 +53,7 @@ const createNewLiveProjectIntoDB = async (data: {
   documents?: IDocument[];
   createdBy: string;
   projectStatus?: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCEL" | "ARCHIVED";
+  paymentMethod?: string | null;
 }): Promise<NewLiveProject> => {
   // Handle FIXED vs HOURLY projects
   let projectBudget: Decimal | null = null;
@@ -134,6 +135,7 @@ const createNewLiveProjectIntoDB = async (data: {
       committedDeadline: committedDeadlineDate,
       targetedDeadline: targetedDeadlineJson,
       documents: documentsJson,
+      paymentMethod: data.paymentMethod ?? null,
       createdBy: data.createdBy,
     },
     include: {
@@ -269,6 +271,7 @@ const updateNewLiveProjectIntoDB = async (
     committedDeadline: string | null;
     targetedDeadline: ITargetedDeadline | null;
     projectStatus: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCEL" | "ARCHIVED";
+    paymentMethod: string | null;
   }>
 ): Promise<NewLiveProject> => {
   const existingProject = await prisma.newLiveProject.findUniqueOrThrow({
@@ -444,6 +447,7 @@ const updateNewLiveProjectIntoDB = async (
     ...(data.targetedDeadline !== undefined && {
       targetedDeadline: targetedDeadlineJson,
     }),
+    ...(data.paymentMethod !== undefined && { paymentMethod: data.paymentMethod }),
   };
 
   console.log("Update data being sent to Prisma:", JSON.stringify({
@@ -906,6 +910,106 @@ const deleteHourLogFromDB = async (hourLogId: string): Promise<NewHourLog> => {
   return deletedLog;
 };
 
+/**
+ * Recalculate paidAmount and dueAmount for a FIXED project from its payment logs
+ */
+const recalculatePaidAmountForFixedProject = async (projectId: string): Promise<void> => {
+  const project = await prisma.newLiveProject.findUniqueOrThrow({ where: { id: projectId } });
+  if (project.projectType !== "FIXED") return;
+
+  const logs = await prisma.newPaymentLog.findMany({ where: { projectId } });
+  const total = logs.reduce((sum, log) => sum + Number(log.amount), 0);
+  const paidAmount = new Decimal(total);
+  const dueAmount = project.projectBudget
+    ? calculateDueAmount(project.projectBudget, paidAmount)
+    : null;
+
+  await prisma.newLiveProject.update({
+    where: { id: projectId },
+    data: { paidAmount, dueAmount },
+  });
+};
+
+/**
+ * Create a payment log for a project
+ */
+const createPaymentLogIntoDB = async (data: {
+  projectId: string;
+  amount: number;
+  paymentMethod?: string | null;
+  note?: string | null;
+  receivedAt?: string | null;
+  createdBy: string;
+}): Promise<NewPaymentLog> => {
+  await prisma.newLiveProject.findUniqueOrThrow({ where: { id: data.projectId } });
+
+  const log = await prisma.newPaymentLog.create({
+    data: {
+      projectId: data.projectId,
+      amount: new Decimal(data.amount),
+      paymentMethod: data.paymentMethod ?? null,
+      note: data.note ?? null,
+      receivedAt: data.receivedAt ? new Date(data.receivedAt) : new Date(),
+      createdBy: data.createdBy,
+    },
+    include: {
+      creator: {
+        select: { id: true, user: { select: { id: true, name: true, email: true } } },
+      },
+    },
+  });
+
+  await recalculatePaidAmountForFixedProject(data.projectId);
+  return log;
+};
+
+/**
+ * Get all payment logs for a project (optionally filtered by month)
+ */
+const getPaymentLogsFromDB = async (projectId: string, month?: string) => {
+  await prisma.newLiveProject.findUniqueOrThrow({ where: { id: projectId } });
+
+  const where: Prisma.NewPaymentLogWhereInput = { projectId };
+
+  if (month) {
+    const [year, monthNum] = month.split("-").map(Number);
+    const start = new Date(year, monthNum - 1, 1);
+    const end = new Date(year, monthNum, 1);
+    where.receivedAt = { gte: start, lt: end };
+  }
+
+  return await prisma.newPaymentLog.findMany({
+    where,
+    orderBy: { receivedAt: "desc" },
+    include: {
+      creator: {
+        select: { id: true, user: { select: { id: true, name: true, email: true } } },
+      },
+    },
+  });
+};
+
+/**
+ * Delete a payment log
+ */
+const deletePaymentLogFromDB = async (paymentLogId: string): Promise<NewPaymentLog> => {
+  const existingLog = await prisma.newPaymentLog.findUniqueOrThrow({
+    where: { id: paymentLogId },
+  });
+
+  const deleted = await prisma.newPaymentLog.delete({
+    where: { id: paymentLogId },
+    include: {
+      creator: {
+        select: { id: true, user: { select: { id: true, name: true, email: true } } },
+      },
+    },
+  });
+
+  await recalculatePaidAmountForFixedProject(existingLog.projectId);
+  return deleted;
+};
+
 export const NewLiveProjectService = {
   createNewLiveProjectIntoDB,
   getAllNewLiveProjectsFromDB,
@@ -921,4 +1025,7 @@ export const NewLiveProjectService = {
   getHourLogsFromDB,
   updateHourLogIntoDB,
   deleteHourLogFromDB,
+  createPaymentLogIntoDB,
+  getPaymentLogsFromDB,
+  deletePaymentLogFromDB,
 };

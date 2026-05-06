@@ -109,6 +109,7 @@ model UserProfile {
   messages                  Message[]
   newHourLogs               NewHourLog[]
   newLiveProjects           NewLiveProject[]          @relation("NewLiveProjectCreatedBy")
+  newPaymentLogs            NewPaymentLog[]           @relation("NewPaymentLogCreatedBy")
   newProjectActions         NewProjectAction[]
   notifications             Notification[]
   projectFiles              ProjectFile[]
@@ -626,6 +627,7 @@ model NewLiveProject {
   committedDeadline DateTime?
   targetedDeadline  Json?
   documents         Json?
+  paymentMethod     String?
   displayOrder      Int                   @default(0)
   createdBy         String
   createdAt         DateTime              @default(now())
@@ -633,6 +635,7 @@ model NewLiveProject {
   creator           UserProfile           @relation("NewLiveProjectCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
   actions           NewProjectAction[]
   hourLogs          NewHourLog[]
+  paymentLogs       NewPaymentLog[]
 
   @@index([projectStatus])
   @@index([projectType])
@@ -656,6 +659,24 @@ model NewProjectAction {
   @@index([createdBy])
   @@index([actionDate])
   @@map("new_project_actions")
+}
+
+model NewPaymentLog {
+  id            String         @id @default(ulid())
+  projectId     String
+  amount        Decimal
+  paymentMethod String?
+  note          String?
+  receivedAt    DateTime       @default(now())
+  createdBy     String
+  createdAt     DateTime       @default(now())
+  project       NewLiveProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator       UserProfile    @relation("NewPaymentLogCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([receivedAt])
+  @@index([createdBy])
+  @@map("new_payment_logs")
 }
 
 model NewHourLog {

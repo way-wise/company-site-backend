@@ -388,6 +388,24 @@ const updateHourLog = z.object({
   }),
 });
 
+/**
+ * Create payment log validation schema
+ */
+const createPaymentLog = z.object({
+  body: z.object({
+    amount: z
+      .number({ message: "Amount must be a number" })
+      .positive("Amount must be greater than 0"),
+    paymentMethod: z.string().max(255).optional().nullable(),
+    note: z.string().max(1000).optional().nullable(),
+    receivedAt: z
+      .string()
+      .datetime({ message: "receivedAt must be a valid ISO datetime string" })
+      .optional()
+      .nullable(),
+  }),
+});
+
 export const newLiveProjectValidationSchemas = {
   create,
   update,
@@ -395,4 +413,5 @@ export const newLiveProjectValidationSchemas = {
   updateAction,
   createHourLog,
   updateHourLog,
+  createPaymentLog,
 };
