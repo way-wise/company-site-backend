@@ -259,6 +259,7 @@ const update = z
         .optional()
         .nullable(),
       targetedDeadline: targetedDeadlineSchema.optional().nullable(),
+      paymentMethod: z.string().max(255).optional().nullable(),
     }),
   })
   .refine(
