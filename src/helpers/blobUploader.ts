@@ -1,7 +1,7 @@
 import { put } from "@vercel/blob";
 import { randomUUID } from "crypto";
-import fs from "fs";
 import path from "path";
+import { Readable } from "stream";
 import { UploadedFile } from "../app/interfaces/file";
 import config from "../config/config";
 
@@ -40,7 +40,7 @@ export const uploadFileToBlob = async (
   file: UploadedFile,
   options: BlobUploadOptions = {}
 ): Promise<BlobUploadResult> => {
-  if (!file || !file.path) {
+  if (!file || !file.buffer) {
     throw new Error("Invalid file provided");
   }
 
@@ -53,9 +53,7 @@ export const uploadFileToBlob = async (
   const blobName = buildBlobName(file, options.prefix);
 
   try {
-    const fileStream = fs.createReadStream(file.path);
-
-    const result = await put(blobName, fileStream, {
+    const result = await put(blobName, Readable.from(file.buffer), {
       access: options.access ?? "public",
       token,
       contentType: file.mimetype,
@@ -69,10 +67,6 @@ export const uploadFileToBlob = async (
     };
   } catch (error) {
     throw new Error("Failed to upload file to Vercel Blob");
-  } finally {
-    if (file.path && fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
   }
 };
 
